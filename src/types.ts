@@ -83,6 +83,7 @@ export interface HabitLoggingConfig {
 export interface HabitDefinition {
   id: HabitId;
   name: string;
+  category?: string;
   unit: HabitUnit;
   cadence: HabitCadence;
   enabled: boolean;
@@ -130,6 +131,8 @@ export interface ExternalMetricImport {
 export interface DailyLog {
   date: string;
   metrics: Record<HabitId, number>;
+  /** Preserve Boolean YAML values while metrics provide numeric projections for analytics. */
+  booleanValues?: Record<HabitId, boolean>;
   metricSources: Partial<Record<HabitId, HabitSource>>;
   metricNotes: Partial<Record<HabitId, string>>;
   sessions: Record<HabitId, HabitSession[]>;

@@ -1,5 +1,6 @@
 import { emptyDailyLog } from "./log-schema";
 import { addDays } from "./date";
+import { isBooleanUnit } from "./habit-options";
 import { DailyLog, DayEvaluation, HabitCadence, HabitDefinition, HabitEvaluation, HabitSettings, ImportedTypingResult, PeriodEvaluation, TargetVersion } from "./types";
 
 export function earliestEffectiveDate(habit: HabitDefinition): string | undefined {
@@ -18,6 +19,7 @@ export function targetForDate(habit: HabitDefinition, date: string): TargetVersi
 }
 
 export function valueForHabit(log: DailyLog, habit: HabitDefinition): number {
+  if (isBooleanUnit(habit.unit)) return (log.metrics[habit.id] ?? 0) > 0 ? 1 : 0;
   if (habit.id === "typing") {
     if (hasTypingData(log)) return typingDurationSeconds(log) / 60;
     return log.metrics[habit.id] ?? 0;
@@ -117,7 +119,7 @@ export function calculateGoalProgress(value: number, target: TargetVersion | und
   // 2. Avoidance / negative habit: success is value <= max (default max 0)
   if (habit?.type === "avoidance") {
     if (!target) return { progress: 0, isOverCeiling: false, excess: 0 };
-    const maxLimit = target.max ?? 0;
+    const maxLimit = isBooleanUnit(habit.unit) ? 0 : target.max ?? 0;
     if (value <= maxLimit) {
       return { progress: 1, isOverCeiling: false, excess: 0 };
     }
@@ -126,6 +128,9 @@ export function calculateGoalProgress(value: number, target: TargetVersion | und
   }
 
   // 3. Habit with no targets defined
+  if (habit && isBooleanUnit(habit.unit)) {
+    return { progress: target && value > 0 ? 1 : 0, isOverCeiling: false, excess: 0 };
+  }
   if (!target || (target.min === undefined && target.max === undefined)) {
     return { progress: value > 0 ? 1 : 0, isOverCeiling: false, excess: 0 };
   }
@@ -163,9 +168,10 @@ function evaluationStatus(value: number, target: TargetVersion | undefined, habi
   if (habit?.type === "tracker") return "not-applicable";
   if (!target) return "not-applicable";
   if (habit?.type === "avoidance") {
-    const maxLimit = target.max ?? 0;
+    const maxLimit = isBooleanUnit(habit.unit) ? 0 : target.max ?? 0;
     return value <= maxLimit ? "complete" : "empty";
   }
+  if (habit && isBooleanUnit(habit.unit)) return value > 0 ? "complete" : "empty";
   if (target.min === undefined && target.max === undefined) return "not-applicable";
   const withinMin = target.min === undefined || value >= target.min;
   const withinMax = target.max === undefined || value <= target.max;

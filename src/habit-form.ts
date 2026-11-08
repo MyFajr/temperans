@@ -1,10 +1,11 @@
-import { CADENCE_OPTIONS, UNIT_LABELS } from "./habit-options";
+import { CADENCE_OPTIONS, UNIT_LABELS, isBooleanUnit } from "./habit-options";
 import { HabitPreset } from "./habit-presets";
 import { createSubpageCard, renderActionCard } from "./ui";
 import { Notice, Setting, setIcon } from "obsidian";
 import { HabitStore } from "./data";
 import { todayInZone } from "./date";
 import { createTemperansDropdown } from "./dropdown";
+import { normalizeHabitCategory } from "./habit-category";
 import { EndpointConfig, HabitCadence, HabitDefinition, HabitDisplayFormat, RESERVED_HABIT_IDS, TargetVersion } from "./types";
 
 function slugify(name: string): string {
@@ -33,6 +34,7 @@ export async function renderAddHabitForm(
   const preset = options?.initialPreset;
 
   let name = preset?.name ?? "";
+  let category = "";
   let habitCategory: "build" | "avoidance" | "tracker" = preset
     ? (preset.archetype === "avoidance" ? "avoidance" : (preset.archetype === "tracker" ? "tracker" : "build"))
     : "build";
@@ -105,6 +107,9 @@ export async function renderAddHabitForm(
       .onChange((value) => { name = value; });
   });
 
+  new Setting(detailsCard).setName("Category").setDesc("Optional.")
+    .addText((input) => input.setPlaceholder("e.g. Fitness or Study").onChange((value) => { category = value; }));
+
   let selectedUnitChoice = preset
     ? (Object.hasOwn(UNIT_LABELS, preset.unit) ? preset.unit : "custom")
     : "count";
@@ -120,6 +125,7 @@ export async function renderAddHabitForm(
       if (customUnitValue) input.setValue(customUnitValue);
       input.setPlaceholder("e.g. km, steps, words").onChange((value) => {
         customUnitValue = value.trim();
+        updateDynamicTargetCard();
       });
     });
 
@@ -130,6 +136,7 @@ export async function renderAddHabitForm(
     onChange: (value) => {
       selectedUnitChoice = value;
       customUnitContainer.toggleClass("temperans-hidden", value !== "custom");
+      updateDynamicTargetCard();
     }
   });
 
@@ -149,7 +156,14 @@ export async function renderAddHabitForm(
   const updateDynamicTargetCard = () => {
     targetBody.empty();
 
-    if (habitCategory === "avoidance") {
+    if (isBooleanUnit(selectedUnitChoice === "custom" ? customUnitValue : selectedUnitChoice)) {
+      targetBody.createEl("p", {
+        cls: "temperans-subpage-card-desc",
+        text: habitCategory === "avoidance" ? "Record whether it occurred. No occurrence meets the goal."
+          : habitCategory === "tracker" ? "Record yes or no without a numeric target."
+          : "Mark done once per cadence. No numeric target needed."
+      });
+    } else if (habitCategory === "avoidance") {
       new Setting(targetBody)
         .setName("Tolerance limit (max slips)")
         .setDesc("0 means complete abstinence. Entering 0 or leaving unlogged builds your streak.")
@@ -204,8 +218,13 @@ export async function renderAddHabitForm(
 
     let targetHistory: TargetVersion[] = [{ effectiveDate: todayInZone(settings.timezone) }];
     let finalType: HabitDefinition["type"] = "metric";
+    const effectiveUnit = selectedUnitChoice === "custom" ? (customUnitValue || "count") : selectedUnitChoice;
+    const booleanUnit = isBooleanUnit(effectiveUnit);
 
-    if (habitCategory === "avoidance") {
+    if (booleanUnit && habitCategory !== "tracker") {
+      finalType = habitCategory === "avoidance" ? "avoidance" : "metric";
+      targetHistory = [{ effectiveDate: todayInZone(settings.timezone), ...(habitCategory === "avoidance" ? { max: 0 } : { min: 1 }) }];
+    } else if (habitCategory === "avoidance") {
       finalType = "avoidance";
       const max = maximum.trim() ? Number(maximum) : 0;
       if (!Number.isFinite(max) || max < 0) return new Notice("Enter a valid tolerance limit.");
@@ -225,16 +244,17 @@ export async function renderAddHabitForm(
     let id = baseId;
     let suffix = 2;
     while (existingIds.has(id)) id = `${baseId}-${suffix++}`;
-    const effectiveUnit = selectedUnitChoice === "custom" ? (customUnitValue || "count") : selectedUnitChoice;
+    const normalizedCategory = normalizeHabitCategory(category);
 
     await store.addHabit({
       id,
       name: name.trim(),
+      ...(normalizedCategory ? { category: normalizedCategory } : {}),
       unit: effectiveUnit,
       cadence,
       enabled: true,
       type: finalType,
-      displayFormat: presetDisplayFormat,
+      displayFormat: booleanUnit ? "number" : presetDisplayFormat,
       targetHistory,
       ...(presetEndpoint ? { endpoint: presetEndpoint } : {})
     });

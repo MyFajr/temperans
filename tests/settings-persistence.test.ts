@@ -8,10 +8,10 @@ const habit = (id: string): HabitDefinition => ({
   id, name: id, unit: "count", cadence: "daily", enabled: true, targetHistory: [{ effectiveDate: "2026-01-01", min: 1 }]
 });
 
-function fixture() {
+function fixture(habits: HabitDefinition[] = [habit("a"), habit("b")]) {
   const file = new TFile("Habit Logs/Settings.md");
   const body = "\n# Personal settings\nKeep this note and its links.\n";
-  let contents = `---\n${JSON.stringify({ temperans: "settings", timezone: "UTC", custom: { keep: true }, habits: [habit("a"), habit("b")] })}\n---\n${body}`;
+  let contents = `---\n${JSON.stringify({ temperans: "settings", timezone: "UTC", custom: { keep: true }, habits })}\n---\n${body}`;
   const vault = {
     getAbstractFileByPath: () => file,
     read: async () => contents,
@@ -23,6 +23,26 @@ function fixture() {
 }
 
 describe("shared settings persistence", () => {
+  it("preserves YAML categories through edits and reordering, and removes a cleared category", async () => {
+    const f = fixture([{ ...habit("a"), category: " Fitness " }, habit("b")]);
+    const loaded = (await f.store.loadSettings()).habits;
+    expect(loaded[0].category).toBe("Fitness");
+    expect(loaded[1]).not.toHaveProperty("category");
+
+    await f.store.updateHabit({ ...loaded[1], name: "Updated" });
+    await f.store.addHabit({ ...habit("c"), category: " Study " });
+    await f.store.reorderHabits(["c", "a", "b"]);
+    const reordered = (await f.store.loadSettings()).habits;
+    expect(reordered.map(h => h.category)).toEqual(["Study", "Fitness", undefined]);
+    expect(f.frontmatter().habits[1].category).toBe("Fitness");
+
+    await f.store.updateHabit({ ...reordered[1], category: "  " });
+    const cleared = (await f.store.loadSettings()).habits;
+    expect(cleared[1]).not.toHaveProperty("category");
+    expect(f.frontmatter().habits[1]).not.toHaveProperty("category");
+    expect(cleared[0].category).toBe("Study");
+  });
+
   it("preserves unrelated frontmatter and note body across add, edit, reorder and delete", async () => {
     const f = fixture();
     await f.store.loadSettings(); // Populate cache before the first write.

@@ -56,6 +56,7 @@ describe("shared habit creation", () => {
     }
     await vi.waitFor(() => expect(root.field("Habit name")).toBeDefined());
     change(root, "Habit name", " Reading ");
+    change(root, "Category", " Study ");
     change(root, "Minimum target", "15");
     change(root, "Maximum target", "60");
     change(root, "Multi-entry sessions", true);
@@ -65,7 +66,7 @@ describe("shared habit creation", () => {
     choose(root, "Goal cadence", "quarterly");
     await root.button("Create habit").onclick!();
     expect(store.addHabit).toHaveBeenCalledWith(expect.objectContaining({
-      id: "reading-3", name: "Reading", unit: "pomodoros", cadence: "quarterly", type: "session",
+      id: "reading-3", name: "Reading", category: "Study", unit: "pomodoros", cadence: "quarterly", type: "session",
       enabled: true, targetHistory: [{ effectiveDate: expect.any(String), min: 15, max: 60 }]
     }));
     expect(refreshed).toHaveBeenCalledOnce();
@@ -84,6 +85,18 @@ describe("shared habit creation", () => {
     expect(habit.type).toBe(title === "Avoidance habit" ? "avoidance" : "tracker");
     expect(habit.targetHistory[0]).toEqual({ effectiveDate: expect.any(String), ...(title === "Avoidance habit" ? { max: 0 } : {}) });
     expect(preventDefault).toHaveBeenCalledOnce();
+  });
+
+  it("offers Boolean as a unit and removes numeric targets and session controls", async () => {
+    const root = new Element(), store = makeStore();
+    await renderAddHabitForm(root.element(), storeType(store), vi.fn());
+    change(root, "Habit name", "Stretch");
+    choose(root, "Unit", "boolean");
+    expect(root.all().some(node => ["Minimum target", "Maximum target", "Multi-entry sessions"].includes(node.setting?.name ?? ""))).toBe(false);
+    await root.button("Create habit").onclick!();
+    expect(store.addHabit).toHaveBeenCalledWith(expect.objectContaining({
+      unit: "boolean", type: "metric", targetHistory: [{ effectiveDate: expect.any(String), min: 1 }]
+    }));
   });
 
   it.each([["", "30", ""], ["date", "30", ""], ["Read", "-1", ""], ["Read", "30", "20"], ["Read", "Infinity", ""]])(

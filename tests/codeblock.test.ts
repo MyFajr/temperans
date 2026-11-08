@@ -97,4 +97,41 @@ widgets:
     expect(csvConfig.habitFilter).toBe("overall");
     expect(csvConfig.habitFilters).toEqual(["reading", "sleep", "hydration"]);
   });
+
+  it("applies a block category only to loggers and allows each logger to override it", () => {
+    const config = parseCodeblockConfig(`
+category: " Fitness "
+widgets:
+  - logger
+  - stats
+  - widget: logger
+    category: Study
+  - widget: logger
+    config:
+      category: Chores
+`);
+    expect(config.habitFilter).toBe("overall");
+    expect(config.habitFilters).toBeUndefined();
+    expect(config.widgets).toEqual([
+      { widget: "logger", config: { category: "Fitness" } },
+      { widget: "stats" },
+      { widget: "logger", config: { category: "Study" } },
+      { widget: "logger", config: { category: "Chores" } }
+    ]);
+  });
+
+  it("keeps explicit habit restrictions on category loggers even when those IDs do not exist", () => {
+    const config = parseCodeblockConfig(`
+category: Fitness
+habits: [missing]
+widgets:
+  - logger
+  - widget: logger
+    habit: running
+`);
+    expect(config.widgets).toEqual([
+      { widget: "logger", config: { habits: ["missing"], category: "Fitness" } },
+      { widget: "logger", config: { habit: "running", category: "Fitness" } }
+    ]);
+  });
 });

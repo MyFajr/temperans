@@ -1,5 +1,6 @@
 export const UNIT_LABELS: Record<string, string> = {
   count: "Count",
+  boolean: "Boolean (done / not done)",
   minutes: "Minutes",
   hours: "Hours",
   reps: "Reps",
@@ -18,6 +19,10 @@ export const UNIT_LABELS: Record<string, string> = {
   tests: "Tests",
   custom: "Custom unit..."
 };
+
+export function isBooleanUnit(unit: string): boolean {
+  return unit.trim().toLowerCase() === "boolean";
+}
 
 export const CADENCE_OPTIONS = [
   { value: "daily", label: "Daily" },

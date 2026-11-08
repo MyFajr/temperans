@@ -160,9 +160,21 @@ function parseUnifiedDailyLog(raw: Record<string, unknown>, date: string): Daily
   const readingSessions = parseSessions(reading.sessions);
   if (readingSessions.length) sessions.reading = readingSessions;
 
+  const booleanValues: Record<string, boolean> = {};
+  for (const [id, entry] of Object.entries(raw)) {
+    if (OWNED_TOP_LEVEL_KEYS.has(id) && id !== "typing" && id !== "reading") continue;
+    const habit = asRecord(entry);
+    if (typeof habit.value !== "boolean") continue;
+    booleanValues[id] = habit.value;
+    metrics[id] = Number(habit.value);
+    const note = optionalNote(habit.note);
+    if (note) metricNotes[id] = note;
+  }
+
   return {
     date,
     metrics,
+    ...(Object.keys(booleanValues).length ? { booleanValues } : {}),
     metricSources,
     metricNotes,
     sessions,
@@ -293,6 +305,17 @@ export function serializeDailyLog(log: DailyLog, existing: Record<string, unknow
     ...(readingNote ? { note: readingNote } : {}),
     ...(log.metricSources.reading || readingSessions.length ? { source: log.metricSources.reading ?? "manual" } : {})
   };
+
+  for (const [id, completed] of Object.entries(log.booleanValues ?? {})) {
+    const source = sourceOrUndefined(log.metricSources[id]);
+    const note = optionalNote(log.metricNotes[id]);
+    habits[id] = {
+      ...habits[id],
+      value: (log.metrics[id] ?? Number(completed)) > 0,
+      ...(source ? { source } : {}),
+      ...(note ? { note } : {})
+    };
+  }
 
   return {
     temperans: "habit-log",

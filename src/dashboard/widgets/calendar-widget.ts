@@ -4,6 +4,7 @@ import { calculateGoalProgress, earliestEffectiveDate, evaluatePeriodGoal } from
 import { cadenceLabel, formatValue, targetLabel } from "../format";
 import { DashboardWidget, WidgetContext } from "../types";
 import { HabitDefinition, HabitEvaluation, PeriodEvaluation } from "../../types";
+import { isBooleanUnit } from "../../habit-options";
 
 function intensity(score: number | null): number {
   if (score === null || score <= 0) return 0;
@@ -27,6 +28,10 @@ function buildCellTooltip(
 ): string {
   if (isFuture) {
     return `${formatDate(date)} — future date`;
+  }
+  if (selectedHabit && isBooleanUnit(selectedHabit.unit)) {
+    const value = periodEvaluation?.value ?? habitEvaluation?.value ?? 0;
+    return `${formatDate(date)} — ${formatValue(value, selectedHabit.unit, selectedHabit)}${periodEvaluation ? ` (${periodEvaluation.startDate}–${periodEvaluation.endDate})` : ""}`;
   }
   if (periodEvaluation && selectedHabit) {
     const goal = calculateGoalProgress(periodEvaluation.value, periodEvaluation.target, selectedHabit);

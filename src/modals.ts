@@ -1,11 +1,12 @@
 import { followModalViewport } from "./modal-viewport";
 import { serialized } from "./async";
-import { CADENCE_OPTIONS, UNIT_LABELS } from "./habit-options";
+import { CADENCE_OPTIONS, UNIT_LABELS, isBooleanUnit } from "./habit-options";
 import { App, Modal, Notice, Setting, setIcon } from "obsidian";
 import { HabitStore } from "./data";
 import { formatDate, todayInZone } from "./date";
 import { formatTypingDuration, isTimeUnit, parseHabitAmount, parseTimeValue, parseSleepDuration, parseTypingDuration, sleepInputValue, typingInputValue } from "./durations";
 import { createTemperansDropdown } from "./dropdown";
+import { normalizeHabitCategory } from "./habit-category";
 import { calculateGoalProgress, targetForDate, typingDurationSeconds, valueForHabit } from "./evaluation";
 import { cadenceLabel, formatValue, targetLabel } from "./dashboard/format";
 import { DailyLog, HabitCadence, HabitDefinition, HabitId, HabitSession, HabitType, ImportedTypingResult, QuickEntryConfig } from "./types";
@@ -174,6 +175,15 @@ export class HabitLogModal extends Modal {
     const habit = this.habits[this.currentIndex];
     if (!habit) return;
 
+    if (isBooleanUnit(habit.unit)) {
+      const draft = this.metricDrafts.get(habit.id);
+      if (draft?.dirty) {
+        await this.store.recordMetric(this.date, habit.id, Number(draft.amount) > 0, draft.note);
+        draft.dirty = false;
+      }
+      return;
+    }
+
     const isDuration = habit.displayFormat === "duration" || habit.id === "sleep";
     const isSession = habit.type === "session" || habit.id === "reading";
 
@@ -319,7 +329,7 @@ export class HabitLogModal extends Modal {
     const statusBadge = heroHeader.createSpan({ cls: "temperans-hero-card-badge" });
 
     if (habit.type === "avoidance") {
-      const maxLimit = target?.max ?? 0;
+      const maxLimit = isBooleanUnit(habit.unit) ? 0 : target?.max ?? 0;
       if (currentValue <= maxLimit) {
         statusBadge.addClass("is-success");
         statusBadge.setText("✓ Clean Day");
@@ -387,14 +397,14 @@ export class HabitLogModal extends Modal {
       textGroup.createSpan({ cls: "temperans-logger-habit-name", text: habit.name });
 
       const progress = textGroup.createDiv({ cls: "temperans-collapsed-logger-progress" });
-      const actual = habit.id === "typing"
+      const actual = habit.id === "typing" && !isBooleanUnit(habit.unit)
         ? formatTypingDuration(Math.round(typingDurationSeconds(this.logData)))
         : formatValue(val, habit.unit, habit);
-      progress.createSpan({ cls: "temperans-detail-value", text: `${actual} / ${targetLabel(target, habit)}` });
+      progress.createSpan({ cls: "temperans-detail-value", text: isBooleanUnit(habit.unit) ? actual : `${actual} / ${targetLabel(target, habit)}` });
 
       const badge = row.createSpan({ cls: "temperans-hero-card-badge" });
       if (habit.type === "avoidance") {
-        const maxLimit = target?.max ?? 0;
+        const maxLimit = isBooleanUnit(habit.unit) ? 0 : target?.max ?? 0;
         if (val <= maxLimit) {
           badge.addClass("is-success");
           badge.setText("✓ Clean Day");
@@ -501,7 +511,9 @@ export class HabitLogModal extends Modal {
     const isDuration = currentHabit.displayFormat === "duration" || currentHabit.id === "sleep";
     const isSession = currentHabit.type === "session" || currentHabit.id === "reading";
 
-    if (isSession) {
+    if (isBooleanUnit(currentHabit.unit)) {
+      this.renderBoolean(bodyContainer, currentHabit);
+    } else if (isSession) {
       await this.renderSession(bodyContainer, currentHabit);
     } else if (currentHabit.id === "typing") {
       await this.renderTyping(bodyContainer, currentHabit);
@@ -558,6 +570,33 @@ export class HabitLogModal extends Modal {
       attr: { type: "button" }
     });
     finishBtn.onclick = () => void this.finish();
+  }
+
+  private renderBoolean(container: HTMLElement, habit: HabitDefinition): void {
+    const draft = this.metricDrafts.get(habit.id)!;
+    const heroCard = container.createDiv({ cls: "temperans-hero-card" });
+    const header = heroCard.createDiv();
+    this.renderHeroHeader(header, habit, Number(draft.amount) > 0 ? 1 : 0);
+    const label = habit.type === "avoidance" ? "Occurred" : habit.type === "tracker" ? "Yes" : "Done";
+
+    new Setting(heroCard).setName(label).addToggle(toggle => toggle
+      .setValue(Number(draft.amount) > 0)
+      .onChange(completed => {
+        draft.amount = completed ? "1" : "0";
+        draft.dirty = true;
+        this.queueSave(habit.id, () => this.store.recordMetric(this.date, habit.id, completed, draft.note));
+        header.empty();
+        this.renderHeroHeader(header, habit, completed ? 1 : 0);
+      }));
+
+    new Setting(heroCard).setName(habit.logging?.remark?.label ?? "Note")
+      .setDesc(habit.logging?.remark?.description ?? "Optional.")
+      .addText(input => input.setValue(draft.note).onChange(note => {
+        draft.note = note;
+        draft.dirty = true;
+        this.queueSave(habit.id, () => this.store.recordMetric(this.date, habit.id, Number(draft.amount) > 0, draft.note));
+      }));
+    this.renderEndpointSyncRow(heroCard, habit);
   }
 
   private async renderMetric(container: HTMLElement, habit: HabitDefinition): Promise<void> {
@@ -973,6 +1012,7 @@ export class EditHabitModal extends Modal {
     contentEl.createEl("h2", { text: `Edit habit — ${this.habit.name}` });
 
     let name = this.habit.name;
+    let category = this.habit.category ?? "";
     let habitCategory: "build" | "avoidance" | "tracker" = this.habit.type === "avoidance"
       ? "avoidance"
       : this.habit.type === "tracker"
@@ -991,6 +1031,10 @@ export class EditHabitModal extends Modal {
     new Setting(contentEl).setName("Habit name").addText((input) => input
       .setValue(name)
       .onChange((value) => { name = value; }));
+
+    new Setting(contentEl).setName("Category").setDesc("Optional.")
+      .addText((input) => input.setValue(category).setPlaceholder("e.g. Fitness or Study")
+        .onChange((value) => { category = value; }));
 
     new Setting(contentEl).setName("Enabled").setDesc("Disable to hide this habit from your daily completion score.")
       .addToggle((toggle) => toggle.setValue(enabled).onChange((val) => { enabled = val; }));
@@ -1012,7 +1056,14 @@ export class EditHabitModal extends Modal {
       targetSection.empty();
       sessionSection.empty();
 
-      if (habitCategory === "avoidance") {
+      if (isBooleanUnit(selectedUnitChoice === "custom" ? customUnitValue : selectedUnitChoice)) {
+        targetSection.createEl("p", {
+          cls: "temperans-habit-type-hint",
+          text: habitCategory === "avoidance" ? "Record whether it occurred. No occurrence meets the goal."
+            : habitCategory === "tracker" ? "Record yes or no without a numeric target."
+            : "Mark done once per cadence. No numeric target needed."
+        });
+      } else if (habitCategory === "avoidance") {
         new Setting(targetSection)
           .setName("Tolerance limit (max slips)")
           .setDesc("0 means complete abstinence. Entering 0 or leaving unlogged is a success and builds your streak. Any value above this counts as a slip.")
@@ -1079,7 +1130,7 @@ export class EditHabitModal extends Modal {
       .setName("Custom unit name")
       .addText((input) => {
         input.setValue(customUnitValue);
-        input.onChange((val) => { customUnitValue = val.trim(); });
+        input.onChange((val) => { customUnitValue = val.trim(); updateSectionsVisibility(); });
       });
 
     createTemperansDropdown(unitSetting.controlEl, {
@@ -1089,6 +1140,7 @@ export class EditHabitModal extends Modal {
       onChange: (value) => {
         selectedUnitChoice = value;
         customUnitContainer.toggleClass("temperans-hidden", value !== "custom");
+        updateSectionsVisibility();
       }
     });
 
@@ -1110,8 +1162,15 @@ export class EditHabitModal extends Modal {
         let targetHistory = [...this.habit.targetHistory];
         const today = todayInZone(this.timezone);
         let finalType: HabitType = "metric";
+        const effectiveUnit = selectedUnitChoice === "custom" ? (customUnitValue || "count") : selectedUnitChoice;
+        const booleanUnit = isBooleanUnit(effectiveUnit);
 
-        if (habitCategory === "avoidance") {
+        if (booleanUnit && habitCategory !== "tracker") {
+          finalType = habitCategory === "avoidance" ? "avoidance" : "metric";
+          const target = { effectiveDate: today, ...(habitCategory === "avoidance" ? { max: 0 } : { min: 1 }) };
+          if (targetHistory.at(-1)?.effectiveDate === today) targetHistory[targetHistory.length - 1] = target;
+          else targetHistory.push(target);
+        } else if (habitCategory === "avoidance") {
           finalType = "avoidance";
           const max = maximum.trim() ? Number(maximum) : 0;
           if (!Number.isFinite(max) || max < 0) return new Notice("Enter a valid tolerance limit (0 or more).");
@@ -1144,12 +1203,12 @@ export class EditHabitModal extends Modal {
           }
         }
 
-        const effectiveUnit = selectedUnitChoice === "custom" ? (customUnitValue || "count") : selectedUnitChoice;
-
         await this.onSave({
           ...this.habit,
           name: name.trim(),
+          category: normalizeHabitCategory(category),
           unit: effectiveUnit,
+          ...(booleanUnit ? { displayFormat: "number" as const } : {}),
           cadence,
           enabled,
           type: finalType,

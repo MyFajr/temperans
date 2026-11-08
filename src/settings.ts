@@ -8,6 +8,7 @@ import { App, Modal, Notice, PluginSettingTab, SecretComponent, Setting, Setting
 import TemperansHabitsPlugin from "./main";
 import { formatSleepDuration } from "./durations";
 import { EditHabitModal } from "./modals";
+import { isBooleanUnit } from "./habit-options";
 import { HabitStore } from "./data";
 import { DEFAULT_NOTE_PATH, NotePathSettings, restoreNotePath } from "./note-paths";
 
@@ -544,7 +545,7 @@ export async function renderHabitsConfiguration(
   for (const [index, habit] of settings.habits.entries()) {
     const target = habit.targetHistory.at(-1);
     const formatTarget = (value: number) => habit.id === "sleep" ? formatSleepDuration(value) : `${value} ${habit.unit}`;
-    const range = target?.min !== undefined && target?.max !== undefined
+    const range = isBooleanUnit(habit.unit) ? "Done / not done" : target?.min !== undefined && target?.max !== undefined
       ? `${formatTarget(target.min)}–${formatTarget(target.max)}`
       : target?.min !== undefined
       ? formatTarget(target.min)
@@ -593,7 +594,7 @@ export async function renderHabitsConfiguration(
     const textContainer = row.createDiv({ cls: "temperans-task-text-container" });
     textContainer.createEl("strong", { text: habit.name, cls: "temperans-task-title" });
     textContainer.createSpan({
-      text: ` · ${habit.cadence}${habit.type === "avoidance" ? " · avoidance" : habit.type === "tracker" ? " · tracker" : ""} · ${range}${habit.enabled ? "" : " · disabled"}`,
+      text: ` · ${habit.cadence}${habit.category ? ` · ${habit.category}` : ""}${habit.type === "avoidance" ? " · avoidance" : habit.type === "tracker" ? " · tracker" : ""} · ${range}${habit.enabled ? "" : " · disabled"}`,
       cls: "temperans-task-meta"
     });
 

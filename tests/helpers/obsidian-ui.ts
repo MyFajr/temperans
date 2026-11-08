@@ -34,6 +34,7 @@ export class Element {
   createDiv(options = {}) { return this.createEl("div", options); }
   createSpan(options = {}) { return this.createEl("span", options); }
   empty() { this.children = []; }
+  setText(value: string) { this.empty(); this.textContent = value; }
   addClass(...classes: string[]) { this.cls += ` ${classes.join(" ")}`; }
   appendChild(child: Element) { this.children.push(child); return child; }
   removeClass(cls: string) { this.cls = this.cls.split(" ").filter(c => c !== cls).join(" "); }

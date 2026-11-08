@@ -2,6 +2,7 @@ import { App, normalizePath } from "obsidian";
 import { formatTotalVolume, formatValue } from "./dashboard/format";
 import type { HabitStore } from "./data";
 import type { AnalyticsSummaryData } from "./analytics-panel";
+import { isBooleanUnit } from "./habit-options";
 
 export type AnalyticsExportFormat = "json" | "csv";
 
@@ -61,6 +62,9 @@ export function buildAnalyticsShareText(summary: AnalyticsSummaryData): string {
     stats.activeDays > 0 || stats.totalVolume > 0 || (habit.type === "avoidance" && stats.completedDays > 0)
   );
   const lines = shareableHabits.map(({ habit, stats }) => {
+    if (isBooleanUnit(habit.unit)) {
+      return `• ${habit.name}: ${Math.round(stats.consistencyRate * 100)}% consistency · ${stats.currentStreak} ${habit.cadence === "daily" ? "day" : habit.cadence === "weekly" ? "week" : habit.cadence === "monthly" ? "month" : habit.cadence === "quarterly" ? "quarter" : "year"} streak`;
+    }
     const activeDays = `${stats.activeDays} active day${stats.activeDays === 1 ? "" : "s"}`;
     const average = `${formatValue(stats.averageActiveDays, habit.unit, habit)} / active day`;
     const consistency = `${Math.round(stats.consistencyRate * 100)}%`;

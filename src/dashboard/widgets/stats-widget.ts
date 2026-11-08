@@ -3,6 +3,7 @@ import { calculateHabitAnalytics } from "../../analytics";
 import { bestDailyStreak, calculateDailyStreak } from "../../evaluation";
 import { cadenceLabel, formatStatValue } from "../format";
 import { DashboardWidget, WidgetContext } from "../types";
+import { isBooleanUnit } from "../../habit-options";
 
 export class StatsWidget implements DashboardWidget {
   id = "stats";
@@ -109,6 +110,18 @@ export class StatsWidget implements DashboardWidget {
       availableCards["total-volume"] = { label: "Days evaluated", value: String(values.length) };
     }
 
+    const booleanHabit = selectedHabit && isBooleanUnit(selectedHabit.unit);
+    if (booleanHabit) {
+      delete availableCards["total-volume"];
+      delete availableCards["active-average"];
+      delete availableCards["peak-day"];
+      const period = selectedHabit.cadence === "daily" ? "day" : selectedHabit.cadence === "weekly" ? "week"
+        : selectedHabit.cadence === "monthly" ? "month" : selectedHabit.cadence === "quarterly" ? "quarter" : "year";
+      const analytics = ctx.analytics.get(selectedHabit.id) ?? calculateHabitAnalytics(selectedHabit, ctx.dates, ctx.logs, ctx.today);
+      availableCards["current-streak"] = { label: "Current streak", value: `${analytics.currentStreak} ${period}${analytics.currentStreak === 1 ? "" : "s"}` };
+      availableCards["best-streak"] = { label: "Best streak", value: `${analytics.bestStreak} ${period}${analytics.bestStreak === 1 ? "" : "s"}` };
+    }
+
     const requested = Array.isArray(config?.cards) ? config.cards : null;
     if (requested && requested.length > 0) {
       const filtered: Array<{ value: string; label: string }> = [];
@@ -126,6 +139,9 @@ export class StatsWidget implements DashboardWidget {
     }
 
     // Default layout if not specified
+    if (booleanHabit) {
+      return [availableCards["consistency"], availableCards["completed-days"], availableCards["current-streak"], availableCards["best-streak"]];
+    }
     if (selectedHabit && selectedHabit.cadence !== "daily") {
       return [
         availableCards["consistency"],

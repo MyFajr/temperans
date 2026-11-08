@@ -1,11 +1,15 @@
 import { formatSleepDuration } from "../durations";
 import { HabitDefinition } from "../types";
+import { isBooleanUnit } from "../habit-options";
 
 function formatNumber(value: number, fractionDigits = 1): string {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: fractionDigits }).format(value);
 }
 
 export function formatValue(value: number, unit: string, habit?: HabitDefinition): string {
+  if (isBooleanUnit(unit)) return habit?.type === "avoidance" || habit?.type === "tracker"
+    ? value > 0 ? "Yes" : "No"
+    : value > 0 ? "Done" : "Not done";
   if (habit?.displayFormat === "duration" || habit?.id === "sleep") return formatSleepDuration(value);
   const fractionDigits = ["km", "miles"].includes(unit.toLowerCase()) ? 2 : 1;
   const rendered = formatNumber(value, fractionDigits);
@@ -15,6 +19,7 @@ export function formatValue(value: number, unit: string, habit?: HabitDefinition
 
 /** Format accumulated duration totals up to days, without converting to weeks or months. */
 export function formatTotalVolume(value: number, unit: string, habit?: HabitDefinition): string {
+  if (isBooleanUnit(unit)) return `${formatNumber(value, 0)} day${value === 1 ? "" : "s"}`;
   const normalizedUnit = habit?.displayFormat === "duration" || habit?.id === "sleep" ? "minutes" : unit.toLowerCase();
   const secondsPerUnit: Record<string, number> = {
     seconds: 1, second: 1, sec: 1, s: 1,
@@ -37,6 +42,7 @@ export function formatTotalVolume(value: number, unit: string, habit?: HabitDefi
 
 /** Analytics stats formatting; duration values keep the familiar larger unit. */
 export function formatStatValue(value: number, unit: string, habit?: HabitDefinition): string {
+  if (isBooleanUnit(unit)) return formatNumber(value);
   let label = unit;
   const timeUnit = habit?.displayFormat === "duration" || habit?.id === "sleep" || habit?.id === "typing" ? "minutes" : unit.toLowerCase();
   const timeScale: Record<string, number> = { seconds: 1, second: 1, sec: 1, minutes: 60, minute: 60, min: 60, hours: 3600, hour: 3600, h: 3600, days: 86400, day: 86400 };
@@ -61,6 +67,7 @@ export function formatStatValue(value: number, unit: string, habit?: HabitDefini
 }
 
 export function targetLabel(target?: { min?: number; max?: number }, habit?: HabitDefinition): string {
+  if (habit && isBooleanUnit(habit.unit)) return habit.type === "avoidance" ? "No occurrence" : "Done / not done";
   if (habit?.type === "tracker") return "Zero-goal tracking";
   const format = (v: number) => formatValue(v, habit?.unit ?? "count", habit);
   if (habit?.type === "avoidance") {

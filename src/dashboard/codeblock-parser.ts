@@ -1,11 +1,13 @@
 import { parseYaml } from "obsidian";
 import { isLogDate } from "../note-paths";
 import { HabitId } from "../types";
+import { normalizeHabitCategory } from "../habit-category";
 import { DashboardWidgetConfig } from "./types";
 
 export interface CodeblockConfig {
   habit?: string | string[];
   habits?: string | string[];
+  category?: string;
   year?: number;
   date?: string;
   widgets?: Array<string | DashboardWidgetConfig>;
@@ -53,6 +55,7 @@ export function parseCodeblockConfig(source: string): {
 } {
   const currentYear = new Date().getFullYear();
   const parsed = parseYamlSafe(source);
+  const category = normalizeHabitCategory(parsed.category);
 
   const rawHabits = parsed.habits !== undefined ? parsed.habits : parsed.habit;
   const list = normalizeHabitList(rawHabits).filter((id) => id !== "overall");
@@ -82,6 +85,18 @@ export function parseCodeblockConfig(source: string): {
         widgets.push({ widget, ...(Object.keys(finalConfig).length > 0 ? { config: finalConfig } : {}) });
       }
     }
+  }
+
+  // A category scopes loggers only; other widgets keep their existing analytics behavior.
+  for (const item of widgets) {
+    if (item.widget !== "logger") continue;
+    const loggerCategory = item.config?.category !== undefined
+      ? normalizeHabitCategory(item.config.category)
+      : category;
+    if (!loggerCategory) continue;
+    // Preserve explicit IDs even if none are enabled; an empty match must stay empty.
+    const inheritHabits = item.config?.habits === undefined && item.config?.habit === undefined && habitFilters;
+    item.config = { ...(inheritHabits ? { habits: habitFilters } : {}), ...item.config, category: loggerCategory };
   }
 
   return {

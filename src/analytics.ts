@@ -1,5 +1,6 @@
 import { emptyDailyLog } from "./log-schema";
 import { addDays } from "./date";
+import { isBooleanUnit } from "./habit-options";
 import { earliestEffectiveDate, evaluatePeriodGoal, periodBounds, targetForDate, valueForHabit } from "./evaluation";
 import { DailyLog, HabitDefinition, TargetVersion } from "./types";
 
@@ -31,9 +32,10 @@ export interface HabitAnalytics {
 function isComplete(value: number, target?: TargetVersion, habit?: HabitDefinition): boolean {
   if (habit?.type === "tracker") return value > 0;
   if (habit?.type === "avoidance") {
-    const maxLimit = target?.max ?? 0;
+    const maxLimit = habit && isBooleanUnit(habit.unit) ? 0 : target?.max ?? 0;
     return value <= maxLimit;
   }
+  if (habit && isBooleanUnit(habit.unit)) return !!target && value > 0;
   if (!target || (target.min === undefined && target.max === undefined)) return false;
   const withinMin = target.min === undefined || value >= target.min;
   const withinMax = target.max === undefined || value <= target.max;

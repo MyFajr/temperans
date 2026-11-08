@@ -1,6 +1,7 @@
 import { HabitLogModal } from "../../modals";
 import { HabitDefinition, HabitId } from "../../types";
 import { normalizeHabitList } from "../codeblock-parser";
+import { normalizeHabitCategory } from "../../habit-category";
 import { refreshInBackground } from "../background-refresh";
 import { DashboardWidget, WidgetContext } from "../types";
 
@@ -11,8 +12,10 @@ interface LoggerEmbedState {
 
 const loggerEmbedStates = new WeakMap<HTMLElement, LoggerEmbedState>();
 
-function resolveLoggerHabits(ctx: WidgetContext, config?: Record<string, unknown>): HabitDefinition[] {
-  const enabled = ctx.settings.habits.filter((h) => h.enabled);
+export function resolveLoggerHabits(ctx: Pick<WidgetContext, "settings" | "habitFilter" | "habitFilters">, config?: Record<string, unknown>): HabitDefinition[] {
+  const category = normalizeHabitCategory(config?.category)?.toLowerCase();
+  const enabled = ctx.settings.habits.filter((h) => h.enabled
+    && (!category || normalizeHabitCategory(h.category)?.toLowerCase() === category));
   const byId = new Map(enabled.map((h) => [h.id, h]));
 
   const widgetFilterRaw = config?.habits !== undefined ? config.habits : config?.habit;
@@ -64,6 +67,15 @@ export class LoggerWidget implements DashboardWidget {
   ): Promise<void> {
     const date = ctx.selectedDate ?? ctx.today;
     const enabledHabits = resolveLoggerHabits(ctx, config);
+    const category = normalizeHabitCategory(config?.category);
+
+    if (enabledHabits.length === 0 && category) {
+      container.createEl("p", {
+        text: `No enabled habits match “${category}” with the current filters.`,
+        attr: { role: "status" }
+      });
+      return;
+    }
 
     let state = loggerEmbedStates.get(ctx.container);
     if (!state) {

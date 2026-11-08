@@ -8,6 +8,7 @@ import { renderSourceIcon } from "../../source-icon";
 import { formatValue, targetLabel } from "../format";
 import { DashboardWidget, WidgetContext } from "../types";
 import { DailyLog, HabitId } from "../../types";
+import { isBooleanUnit } from "../../habit-options";
 
 function noteForHabit(log: DailyLog, habitId: HabitId): string | undefined {
   return habitId === "typing" ? log.typing.note : log.metricNotes[habitId];
@@ -125,8 +126,9 @@ export class DayDetailWidget implements DashboardWidget {
       const row = list.createDiv({ cls: `temperans-detail-row is-${item.status}` });
       row.createSpan({ text: item.habit.name, cls: "temperans-detail-name" });
       const valueSpan = row.createSpan({ cls: "temperans-detail-value" });
-      const actual = item.habit.id === "typing" ? typingSummary(log) : formatValue(item.value, item.habit.unit, item.habit);
-      valueSpan.createSpan({ text: `${actual} / ${targetLabel(item.target, item.habit)}` });
+      const booleanUnit = isBooleanUnit(item.habit.unit);
+      const actual = item.habit.id === "typing" && !booleanUnit ? typingSummary(log) : formatValue(item.value, item.habit.unit, item.habit);
+      valueSpan.createSpan({ text: booleanUnit ? actual : `${actual} / ${targetLabel(item.target, item.habit)}` });
       const source = log.metricSources[item.habit.id];
       if (source && source !== "manual") {
         renderSourceIcon(valueSpan, source, setIcon);
@@ -148,7 +150,8 @@ export class DayDetailWidget implements DashboardWidget {
         const row = goals.createDiv({ cls: `temperans-detail-row is-${period.status}` });
         row.createSpan({ text: `${habit.name} (${habit.cadence})`, cls: "temperans-detail-name" });
         const valueSpan = row.createSpan({ cls: "temperans-detail-value" });
-        valueSpan.createSpan({ text: `${formatValue(period.value, habit.unit, habit)} / ${targetLabel(period.target, habit)}` });
+        const actual = formatValue(period.value, habit.unit, habit);
+        valueSpan.createSpan({ text: isBooleanUnit(habit.unit) ? actual : `${actual} / ${targetLabel(period.target, habit)}` });
         const source = log.metricSources[habit.id];
         if (source && source !== "manual") {
           renderSourceIcon(valueSpan, source, setIcon);

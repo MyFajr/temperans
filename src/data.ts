@@ -5,6 +5,8 @@ import { abortable, checkAbort, AsyncPool, yieldToHost, serialized } from "./asy
 import { operationFolder } from "./paths";
 import { DEFAULT_NOTE_PATH, NotePathSettings, formattedLogPath, isLogDate, noteFormat, validateNoteFormat } from "./note-paths";
 import { parseLoggingConfig } from "./logging-config";
+import { normalizeHabitCategory } from "./habit-category";
+import { isBooleanUnit } from "./habit-options";
 import { App, TFile, TFolder, normalizePath, parseYaml, stringifyYaml } from "obsidian";
 import { todayInZone } from "./date";
 import { evaluateDailyLog, targetForDate, valueForHabit } from "./evaluation";
@@ -202,6 +204,7 @@ function asHabit(value: unknown, fallback?: HabitDefinition): HabitDefinition | 
     ? raw.targetHistory.map(asTarget).filter((target): target is TargetVersion => target !== null)
     : fallback?.targetHistory ?? [];
   const logging = parseLoggingConfig(raw.logging);
+  const category = normalizeHabitCategory(raw.category);
   const endpoint = asEndpoint(raw.endpoint) ?? fallback?.endpoint;
   const type: HabitType = raw.type === "avoidance" || raw.type === "tracker" || raw.type === "session" || raw.type === "metric"
     ? raw.type
@@ -210,11 +213,12 @@ function asHabit(value: unknown, fallback?: HabitDefinition): HabitDefinition | 
   return {
     id,
     name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : fallback?.name ?? id,
+    ...(category ? { category } : {}),
     unit: rawUnit,
     cadence: rawCadence,
     enabled: typeof raw.enabled === "boolean" ? raw.enabled : fallback?.enabled ?? true,
     type,
-    displayFormat,
+    displayFormat: isBooleanUnit(rawUnit) ? "number" : displayFormat,
     ...(logging ? { logging } : {}),
     targetHistory: targets.length > 0 ? targets : fallback?.targetHistory ?? [],
     ...(endpoint ? { endpoint } : {})
@@ -304,6 +308,7 @@ Each entry in \`habits:\` is an object defining a trackable habit:
 
 - \`id\`: *(string, required)* Unique machine identifier (e.g. \`reading\`, \`pullups\`, \`screen-time\`, \`weight\`, \`typing\`).
 - \`name\`: *(string, required)* User-facing display title shown in dashboards, heat maps, and modals.
+- \`category\`: *(string, optional)* A group such as \`Fitness\` or \`Study\`. Use \`category: Fitness\` with \`widgets: [logger]\` in an embedded codeblock to log enabled habits in that category. Matching ignores capitalization and surrounding whitespace; leave blank for no category.
 - \`enabled\`: *(boolean, default: true)* Whether this habit is actively tracked and evaluated.
 - \`type\`: *(string, default: "quantity")*
   - \`quantity\`: Standard positive build habit where higher amounts indicate progress towards a target.
@@ -311,6 +316,7 @@ Each entry in \`habits:\` is an object defining a trackable habit:
   - \`tracker\`: Zero-goal metric tracker (e.g. body weight, blood pressure, mood). Missing days never penalize streaks or completion scores.
   - \`session\`: Multi-entry activity (e.g. books, workouts, coding sessions) with titles, sub-units (pages, chapters, minutes, reps), and session notes.
 - \`unit\`: *(string, default: "count")* Unit of measurement. Supports standard units (\`pages\`, \`minutes\`, \`reps\`, \`steps\`, \`chapters\`, \`km\`, \`kg\`, \`kcal\`, \`hours\`, \`seconds\`, \`count\`) or any custom unit (\`pomodoros\`, \`cards\`, \`liters\`, \`glasses\`).
+  - \`boolean\`: Done/not done entry, saved as \`value: true\` or \`value: false\`. Positive goals require completion once per cadence; avoidance goals require no occurrence. Numeric targets and quick increments are unnecessary.
 - \`cadence\`: *(string, default: "daily")* Goal evaluation period:
   - \`daily\`: Target evaluated every calendar day.
   - \`weekly\`: Target evaluated across Monday–Sunday weekly window.
@@ -629,18 +635,24 @@ endpoint:
     });
   }
 
-  async recordMetric(date: string, id: HabitId, amount: number, note?: string): Promise<DailyLog> {
+  async recordMetric(date: string, id: HabitId, amount: number | boolean, note?: string): Promise<DailyLog> {
     return this.updateLog(date, (log) => {
       const metricNotes = { ...log.metricNotes };
       const normalizedNote = normalizeNote(note);
       if (normalizedNote) metricNotes[id] = normalizedNote;
       else delete metricNotes[id];
-      return {
+      const booleanValues = { ...log.booleanValues };
+      if (typeof amount === "boolean") booleanValues[id] = amount;
+      else delete booleanValues[id];
+      const updated: DailyLog = {
         ...log,
-        metrics: { ...log.metrics, [id]: Math.max(0, amount) },
+        metrics: { ...log.metrics, [id]: Math.max(0, Number(amount)) },
         metricSources: { ...log.metricSources, [id]: "manual" },
-        metricNotes
+        metricNotes,
+        booleanValues
       };
+      if (!Object.keys(booleanValues).length) delete updated.booleanValues;
+      return updated;
     });
   }
 
@@ -675,7 +687,13 @@ endpoint:
         if (hasCorruptFrontmatter || !Array.isArray(frontmatter.habits)) throw new Error("Invalid Settings.md YAML or habit list. The original file was preserved.");
         const habits = frontmatter.habits.map(value => asHabit(value)).filter((h): h is HabitDefinition => h !== null);
         if (habits.length !== frontmatter.habits.length) throw new Error("Settings.md contains an invalid habit. Fix it before saving.");
-        const next = update(habits);
+        const next = update(habits).map(habit => {
+          const category = normalizeHabitCategory(habit.category);
+          const normalized = { ...habit };
+          if (category) normalized.category = category;
+          else delete normalized.category;
+          return normalized;
+        });
         if (JSON.stringify(next) === JSON.stringify(habits)) return contents;
         return renderDocument({ ...frontmatter, temperans: "settings", habits: next }, body);
       });

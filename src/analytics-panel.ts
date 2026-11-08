@@ -4,6 +4,7 @@ import { daysInYear, formatDate, todayInZone } from "./date";
 import { formatTotalVolume, formatValue } from "./dashboard/format";
 import type { HabitStore } from "./data";
 import type { HabitDefinition } from "./types";
+import { isBooleanUnit } from "./habit-options";
 
 export interface AnalyticsSummaryData {
   year: number;
@@ -55,18 +56,20 @@ export function renderAnalyticsPanel(container: HTMLElement, summary: AnalyticsS
       : `${Math.round(stats.consistencyRate * 100)}% (${stats.completedPeriods ?? 0} / ${stats.totalPeriods ?? 0} ${periodSingular}s)`;
 
     addMetricRow(metricsList, "Consistency", consistencyLabel);
-    addMetricRow(metricsList, "Total volume", formatTotalVolume(stats.totalVolume, habit.unit, habit));
-    const activeDayCount = habit.cadence === "daily"
-      ? ""
-      : ` (${stats.activeDays} active day${stats.activeDays === 1 ? "" : "s"})`;
-    addMetricRow(metricsList, "Avg / active day", `${formatValue(stats.averageActiveDays, habit.unit, habit)}${activeDayCount}`);
-    if (habit.cadence !== "daily") {
-      addMetricRow(metricsList, `Avg / ${periodSingular}`, formatValue(stats.periodAverage ?? 0, habit.unit, habit));
-    }
+    if (!isBooleanUnit(habit.unit)) {
+      addMetricRow(metricsList, "Total volume", formatTotalVolume(stats.totalVolume, habit.unit, habit));
+      const activeDayCount = habit.cadence === "daily"
+        ? ""
+        : ` (${stats.activeDays} active day${stats.activeDays === 1 ? "" : "s"})`;
+      addMetricRow(metricsList, "Avg / active day", `${formatValue(stats.averageActiveDays, habit.unit, habit)}${activeDayCount}`);
+      if (habit.cadence !== "daily") {
+        addMetricRow(metricsList, `Avg / ${periodSingular}`, formatValue(stats.periodAverage ?? 0, habit.unit, habit));
+      }
 
-    if (stats.peakValue > 0) {
-      const peakDateFormatted = showPeakDate && stats.peakDate ? ` (${formatDate(stats.peakDate)})` : "";
-      addMetricRow(metricsList, "Single-day peak", `${formatValue(stats.peakValue, habit.unit, habit)}${peakDateFormatted}`);
+      if (stats.peakValue > 0) {
+        const peakDateFormatted = showPeakDate && stats.peakDate ? ` (${formatDate(stats.peakDate)})` : "";
+        addMetricRow(metricsList, "Single-day peak", `${formatValue(stats.peakValue, habit.unit, habit)}${peakDateFormatted}`);
+      }
     }
 
     addMetricRow(metricsList, "Current streak", `${stats.currentStreak} ${streakSingular}${stats.currentStreak === 1 ? "" : "s"}`);

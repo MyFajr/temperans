@@ -199,7 +199,23 @@ widgets:
 ```
 ````
 
-Both `habits` and `date` are optional filters. Omitting `habits` displays all your enabled habits from `Settings.md`, while omitting `date` automatically targets today.
+Both `habits` and `date` are optional filters. Without a habit or category filter, the logger displays all your enabled habits from `Settings.md`. Omitting `date` automatically targets today.
+
+Use the optional **Category** field to organize related habits, such as `Fitness`, `Study`, or `Chores`. Set it when creating or editing a habit, or add `category: Fitness` to its entry in `Settings.md`. Categories also let you embed a logger for a whole group:
+
+````markdown
+```temperans
+category: Fitness
+widgets:
+  - logger
+```
+````
+
+Category matching ignores capitalization and surrounding whitespace. With a category alone, the logger includes enabled habits in their `Settings.md` order. If you also provide `habit` or `habits`, it includes only selected habits that belong to the category, in the order you specify. An unmatched category displays an empty message.
+
+You can also put `category` on an individual logger widget (alongside `widget: logger`, or inside its `config`). A widget's category overrides the codeblock's category. Categories currently filter logger widgets only.
+
+For habits that only need completion tracking, choose **Boolean (done / not done)** in the **Unit** selector, or set `unit: boolean` in `Settings.md`. The logger uses one toggle and saves `value: true` or `value: false`, with an optional note. Build habits require completion once per cadence; avoidance habits require no occurrence. Boolean summaries show consistency and streaks instead of volume averages.
 
 Clicking **Finish** inside an embedded logger automatically collapses it into a sleek, compact summary card showing your progress and status badges (`✓ Goal Met`, `✓ Clean Day`); clicking anywhere on the card expands it right back out anytime.
 
