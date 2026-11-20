@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { createSubpageCard, renderActionCard } from "./ui";
 import { renderAddHabitForm } from "./habit-form";
 import { renderBrowsePresets } from "./habit-presets-panel";
@@ -27,11 +28,11 @@ class TemperansContentSettingPage extends SettingPage {
       const result = this.renderContent(this.containerEl, () => this.display());
       void Promise.resolve(result).catch((error: unknown) => {
       console.error(`Temperans Habits could not render ${this.title}.`, error);
-        new Notice(error instanceof Error ? error.message : `Could not load ${this.title}.`);
+        new Notice(error instanceof Error ? error.message : t("error.couldNotLoad", { title: this.title }));
       });
     } catch (error) {
         console.error(`Temperans Habits could not render ${this.title}.`, error);
-      new Notice(error instanceof Error ? error.message : `Could not load ${this.title}.`);
+      new Notice(error instanceof Error ? error.message : t("error.couldNotLoad", { title: this.title }));
     }
   }
 }
@@ -64,25 +65,25 @@ export class TemperansSettingTab extends PluginSettingTab {
     return [
       {
         type: "group",
-        heading: "Habits and data management",
+        heading: t("settings.headingDataManagement"),
         items: [
           {
             type: "page",
-            name: "Configure habits",
+            name: t("settings.configureHabits"),
             desc: "Manage, reorder, edit, and create habits.",
             displayValue: () => this.habitCount === null ? "" : String(this.habitCount),
-            page: () => this.createSettingsPage("Configure habits", (container, refresh) => this.renderHabitsSettings(container, refresh))
+            page: () => this.createSettingsPage(t("settings.configureHabits"), (container, refresh) => this.renderHabitsSettings(container, refresh))
           },
           {
             type: "page",
-            name: "Browse presets",
-            desc: "Choose from pre-configured health metrics and connected APIs.",
-            page: () => this.createSettingsPage("Browse presets", (container, refresh) => this.renderPresetsSettings(container, refresh))
+            name: t("habit.browsePresets"),
+            desc: t("presets.browseDescShort"),
+            page: () => this.createSettingsPage(t("habit.browsePresets"), (container, refresh) => this.renderPresetsSettings(container, refresh))
           },
           {
             type: "page",
             name: "Automated API endpoints",
-            desc: "Test external API connections and manage secret storage keys.",
+            desc: t("settings.testApisDesc"),
             displayValue: () => this.endpointCount === null ? "" : String(this.endpointCount),
             page: () => this.createSettingsPage("Automated API endpoints", (container, refresh) => this.renderEndpointsSettings(container, refresh))
           }
@@ -90,11 +91,11 @@ export class TemperansSettingTab extends PluginSettingTab {
       },
       {
         type: "group",
-        heading: "Storage and preferences",
+        heading: t("settings.headingStorage"),
         items: [
           {
             name: "Habit Logs folder",
-            desc: "Vault folder for Settings.md and dated habit notes.",
+            desc: t("desc.vaultFolder"),
             render: (setting) => this.renderFolderSetting(setting)
           },
           {
@@ -117,16 +118,16 @@ export class TemperansSettingTab extends PluginSettingTab {
       },
       {
         type: "group",
-        heading: "Vault configuration notes",
+        heading: t("settings.headingVaultNotes"),
         items: [
           {
             name: "Open Settings.md",
-            desc: "Customize habit schedules, targets, and historical target revisions in YAML.",
+            desc: t("desc.yamlHabits"),
             action: () => { void this.plugin.openSettingsNote(); }
           },
           {
             name: "Open Dashboard.md",
-            desc: "Reorder widgets, select cards, and configure dashboard views in YAML.",
+            desc: t("desc.yamlDashboard"),
             action: () => { void this.plugin.openDashboardConfig(); }
           }
         ]
@@ -137,15 +138,15 @@ export class TemperansSettingTab extends PluginSettingTab {
         items: [
           {
             type: "page",
-            name: "Companion data import",
-            desc: "Import health metrics and habit sessions from the companion app’s JSON or CSV export.",
-            page: () => this.createSettingsPage("Companion data import", (container) => this.renderHealthConnectSettings(container))
+            name: t("settings.companionImport"),
+            desc: t("desc.companionImportDesc"),
+            page: () => this.createSettingsPage(t("settings.companionImport"), (container) => this.renderHealthConnectSettings(container))
           },
           {
             type: "page",
-            name: "Local peer sync",
-            desc: "Wirelessly transfer and compare habit notes with your paired desktop vault.",
-            page: () => this.createSettingsPage("Local peer sync", (container, refresh) => this.renderPeerSyncSettings(container, refresh))
+            name: t("settings.localPeerSync"),
+            desc: t("desc.peerSyncDesc"),
+            page: () => this.createSettingsPage(t("settings.localPeerSync"), (container, refresh) => this.renderPeerSyncSettings(container, refresh))
           }
         ]
       }
@@ -173,22 +174,22 @@ export class TemperansSettingTab extends PluginSettingTab {
   }
 
   private renderFolderSetting(setting: Setting): void {
-    setting.setName("Habit Logs folder")
-      .setDesc("Vault folder for Settings.md and dated habit notes.");
+    setting.setName(t("settings.habitLogsFolder"))
+      .setDesc(t("desc.vaultFolder"));
     let draftFolder = this.plugin.state.folder;
 
     const saveFolder = async (): Promise<void> => {
       const target = draftFolder.trim() || "Habit Logs";
       if (target === this.plugin.state.folder) {
-        new Notice(`Folder is already set to ${target}.`);
+        new Notice(t("notice.folderAlreadySet", { target }));
         return;
       }
       try {
         await this.plugin.setFolder(target);
-        new Notice(`Habit Logs folder updated to "${target}".`);
+        new Notice(t("notice.folderUpdated", { target }));
         this.update();
       } catch (error) {
-        new Notice(error instanceof Error ? error.message : "Could not save the folder.");
+        new Notice(error instanceof Error ? error.message : t("error.couldNotSaveFolder"));
       }
     };
 
@@ -203,7 +204,7 @@ export class TemperansSettingTab extends PluginSettingTab {
       });
     }).addExtraButton((button) => {
       button.setIcon("check");
-      button.setTooltip("Save folder name");
+      button.setTooltip(t("settings.saveFolderName"));
       button.onClick(() => { void saveFolder(); });
     });
   }
@@ -211,8 +212,8 @@ export class TemperansSettingTab extends PluginSettingTab {
   private renderNoteOrganizationSetting(setting: Setting): void {
     const current = restoreNotePath(this.plugin.state.notePath);
     const fallbackMode = current.format === DEFAULT_NOTE_PATH.format ? "flat" : "custom";
-    setting.setName("Organize logs by year and month")
-      .setDesc("Save new logs as YYYY/MM/YYYY-MM-DD.md. Existing notes stay where they are.")
+    setting.setName(t("settings.organizeByYearMonth"))
+      .setDesc(t("desc.saveNewLogs"))
       .addToggle((toggle) => toggle
         .setValue(current.mode === "nested")
         .onChange((enabled) => {
@@ -224,8 +225,8 @@ export class TemperansSettingTab extends PluginSettingTab {
   private renderNoteFormatSetting(setting: Setting): void {
     const current = restoreNotePath(this.plugin.state.notePath);
     let format = current.format;
-    setting.setName("Custom date format")
-      .setDesc("Moment format for dated log filenames, without .md.")
+    setting.setName(t("settings.customDateFormat"))
+      .setDesc(t("desc.dateFormatNaming"))
       .addText((input) => {
         input.setPlaceholder("YYYY-MM-DD").setValue(format);
         input.onChange((value) => { format = value.trim(); });
@@ -237,7 +238,7 @@ export class TemperansSettingTab extends PluginSettingTab {
         });
       })
       .addButton((button) => button
-        .setButtonText("Save format")
+        .setButtonText(t("settings.saveFormat"))
         .onClick(() => { void this.saveNotePathFormat(format); }));
   }
 
@@ -254,14 +255,14 @@ export class TemperansSettingTab extends PluginSettingTab {
       await this.plugin.setNotePath(settings);
       this.update();
     } catch (error) {
-      new Notice(error instanceof Error ? error.message : "Could not save note format.");
+      new Notice(error instanceof Error ? error.message : t("error.couldNotSaveNoteFormat"));
       this.update();
     }
   }
 
   private renderHeatmapColorSetting(setting: Setting): void {
-    setting.setName("Heat-map accent color")
-      .setDesc("Controls the heat-map color scale and respects your active Obsidian theme.");
+    setting.setName(t("settings.heatmapAccentColor"))
+      .setDesc(t("desc.heatmapScale"));
     const paletteIcon = setting.controlEl.createSpan({ cls: "temperans-palette-icon", attr: { "aria-hidden": "true" } });
     setIcon(paletteIcon, "palette");
     setting.addText((input) => {
@@ -618,13 +619,13 @@ export async function renderHabitsConfiguration(
     // Delete Trash button
     const deleteBtn = controls.createEl("button", {
       cls: "temperans-task-order-button mod-warning",
-      attr: { type: "button", "aria-label": `Delete ${habit.name}` }
+      attr: { type: "button", "aria-label": t("aria.deleteHabit", { name: habit.name }) }
     });
     setIcon(deleteBtn, "trash-2");
     deleteBtn.onclick = () => {
       new DeleteHabitConfirmModal(app, habit.name, async () => {
         await store.deleteHabit(habit.id);
-        new Notice(`Deleted “${habit.name}”.`);
+        new Notice(t("notice.deleted", { name: habit.name }));
         await onChanged();
       }).open();
     };
@@ -632,7 +633,7 @@ export async function renderHabitsConfiguration(
     // Up and Down selectors
     const up = controls.createEl("button", {
       cls: "temperans-task-order-button",
-      attr: { type: "button", "aria-label": `Move ${habit.name} up` }
+      attr: { type: "button", "aria-label": t("aria.moveUp", { name: habit.name }) }
     });
     setIcon(up, "chevron-up");
     up.disabled = index === 0;
@@ -640,7 +641,7 @@ export async function renderHabitsConfiguration(
 
     const down = controls.createEl("button", {
       cls: "temperans-task-order-button",
-      attr: { type: "button", "aria-label": `Move ${habit.name} down` }
+      attr: { type: "button", "aria-label": t("aria.moveDown", { name: habit.name }) }
     });
     setIcon(down, "chevron-down");
     down.disabled = index === settings.habits.length - 1;

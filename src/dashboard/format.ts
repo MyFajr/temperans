@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { formatSleepDuration } from "../durations";
 import { HabitDefinition } from "../types";
 import { isBooleanUnit } from "../habit-options";
@@ -8,13 +9,13 @@ function formatNumber(value: number, fractionDigits = 1): string {
 
 export function formatValue(value: number, unit: string, habit?: HabitDefinition): string {
   if (isBooleanUnit(unit)) return habit?.type === "avoidance" || habit?.type === "tracker"
-    ? value > 0 ? "Yes" : "No"
-    : value > 0 ? "Done" : "Not done";
+    ? value > 0 ? t("log.yes") : t("log.no")
+    : value > 0 ? t("log.done") : t("log.notDone");
   if (habit?.displayFormat === "duration" || habit?.id === "sleep") return formatSleepDuration(value);
   const fractionDigits = ["km", "miles"].includes(unit.toLowerCase()) ? 2 : 1;
   const rendered = formatNumber(value, fractionDigits);
   const label = value === 1 && unit.endsWith("s") ? unit.slice(0, -1) : unit;
-  return unit === "minutes" ? `${rendered} min` : `${rendered} ${label}`;
+  return unit === "minutes" ? `${rendered} ${t("unit.minShort")}` : `${rendered} ${label}`;
 }
 
 /** Format accumulated duration totals up to days, without converting to weeks or months. */
@@ -67,18 +68,18 @@ export function formatStatValue(value: number, unit: string, habit?: HabitDefini
 }
 
 export function targetLabel(target?: { min?: number; max?: number }, habit?: HabitDefinition): string {
-  if (habit && isBooleanUnit(habit.unit)) return habit.type === "avoidance" ? "No occurrence" : "Done / not done";
-  if (habit?.type === "tracker") return "Zero-goal tracking";
+  if (habit && isBooleanUnit(habit.unit)) return habit.type === "avoidance" ? t("unit.noOccurrence") : t("unit.doneNotDone");
+  if (habit?.type === "tracker") return t("unit.zeroGoalTracking");
   const format = (v: number) => formatValue(v, habit?.unit ?? "count", habit);
   if (habit?.type === "avoidance") {
     const maxVal = target?.max ?? 0;
-    return `max ${format(maxVal)}`;
+    return t("unit.max", { v: format(maxVal) });
   }
-  if (!target || (target.min === undefined && target.max === undefined)) return "No target";
+  if (!target || (target.min === undefined && target.max === undefined)) return t("unit.noTarget");
   if (target.min !== undefined && target.max !== undefined) return `${format(target.min)}–${format(target.max)}`;
   if (target.min !== undefined) return format(target.min);
-  if (target.max !== undefined) return `up to ${format(target.max)}`;
-  return "No target";
+  if (target.max !== undefined) return t("unit.upTo", { v: format(target.max) });
+  return t("unit.noTarget");
 }
 
 export function cadenceLabel(cadence: string): string {

@@ -42,7 +42,7 @@ export class HabitLogModal extends Modal {
   private stopFollowingViewport?: () => void;
 
   private reportSaveError(error: unknown): void {
-    this.setSaveStatus("Not saved — retry Finish");
+    this.setSaveStatus(t("log.notSavedRetry"));
     new Notice(error instanceof Error ? error.message : t("error.couldNotSaveDraft"));
   }
   private setSaveStatus(value: string): void {
