@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import { App, Platform } from "obsidian";
 import { HabitStore } from "../data";
 import { PluginState } from "../types";
@@ -58,8 +59,8 @@ export class PeerSyncService {
   }
 
   async startHost(): Promise<PeerSyncHostInfo> {
-    if (!this.isDesktop) throw new Error("A peer-sync host can only run on desktop.");
-    if (!validPort(this.plugin.state.peerSyncPort)) throw new Error("Host port must be between 1024 and 65535.");
+    if (!this.isDesktop) throw new Error(t("error.peer.onlyDesktop"));
+    if (!validPort(this.plugin.state.peerSyncPort)) throw new Error(t("error.peer.portRange"));
     await this.plugin.store.ensureInitialized();
     const secret = await this.ensureHostSecret();
     const files = this.createFiles();
@@ -76,8 +77,8 @@ export class PeerSyncService {
   }
 
   async setHostPort(value: number): Promise<void> {
-    if (!validPort(value)) throw new Error("Host port must be between 1024 and 65535.");
-    if (this.isHosting) throw new Error("Stop the host before changing its port.");
+    if (!validPort(value)) throw new Error(t("error.peer.portRange"));
+    if (this.isHosting) throw new Error(t("error.peer.stopBeforePort"));
     this.plugin.state.peerSyncPort = value;
     await this.plugin.savePluginState();
   }
@@ -99,8 +100,8 @@ export class PeerSyncService {
 
   async saveRemoteProfile(url: string, secret: string): Promise<void> {
     const normalizedUrl = normalizePeerUrl(url);
-    if (!normalizedUrl) throw new Error("Enter a desktop address such as http://192.168.1.20:43887.");
-    if (!secret.trim()) throw new Error("Enter the pairing code shown by the desktop host.");
+    if (!normalizedUrl) throw new Error(t("error.peer.enterAddress2"));
+    if (!secret.trim()) throw new Error(t("error.peer.enterCode"));
     this.plugin.state.peerSyncRemoteUrl = normalizedUrl;
     await this.setSecret(this.plugin.state.peerSyncRemoteSecretName, secret.trim());
     await this.plugin.savePluginState();
@@ -129,19 +130,19 @@ export class PeerSyncService {
       if (action === "skip" || item.status === "same") continue;
       try {
         if (action === "upload") {
-          if (!item.local) throw new Error("This device no longer has the selected file.");
+          if (!item.local) throw new Error(t("error.peer.deviceFileGone"));
           const payload = await files.readPayload(item.path);
-          if (payload.sha256 !== item.local.sha256) throw new Error("This device changed the file after comparison. Refresh the preview.");
+          if (payload.sha256 !== item.local.sha256) throw new Error(t("error.peer.deviceChanged"));
           await client.upload({ ...payload, expectedDestinationSha256: item.remote?.sha256 ?? null });
         } else {
-          if (!item.remote) throw new Error("The paired device no longer has the selected file.");
+          if (!item.remote) throw new Error(t("error.peer.remoteFileGone"));
           const payload = await client.download(item.path);
-          if (payload.sha256 !== item.remote.sha256) throw new Error("The paired device changed the file after comparison. Refresh the preview.");
+          if (payload.sha256 !== item.remote.sha256) throw new Error(t("error.peer.remoteChanged"));
           await files.writeRemotePayload(payload, item.local?.sha256 ?? null);
         }
-        results.push({ path: item.path, action, ok: true, message: "Transferred." });
+        results.push({ path: item.path, action, ok: true, message: t("ok.peer.transferred") });
       } catch (error) {
-        results.push({ path: item.path, action, ok: false, message: error instanceof Error ? error.message : "Transfer failed." });
+        results.push({ path: item.path, action, ok: false, message: error instanceof Error ? error.message : t("error.peer.transferFailed") });
       }
     }
     return results;
@@ -169,13 +170,13 @@ export class PeerSyncService {
 
   private async getSecret(name: string): Promise<string> {
     const storage = this.plugin.app.secretStorage;
-    if (!storage) throw new Error("Peer sync requires Obsidian secret storage on this device.");
+    if (!storage) throw new Error(t("error.peer.secretStorage"));
     return storage.getSecret(name) ?? "";
   }
 
   private async setSecret(name: string, value: string): Promise<void> {
     const storage = this.plugin.app.secretStorage;
-    if (!storage) throw new Error("Peer sync requires Obsidian secret storage on this device.");
+    if (!storage) throw new Error(t("error.peer.secretStorage"));
     storage.setSecret(name, value);
   }
 }
