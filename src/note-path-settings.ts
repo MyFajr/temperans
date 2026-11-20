@@ -1,4 +1,5 @@
-import { App, Notice, Setting } from "obsidian";
+import { t, setLocale } from "./i18n";
+successfully downloaded text file (SHA: d7e41013740a53bda98b46d897302ecf543a9de3)import { App, Notice, Setting } from "obsidian";
 import { DEFAULT_NOTE_PATH, NotePathSettings, formattedLogPath, noteFormat, restoreNotePath, validateNoteFormat } from "./note-paths";
 
 export function renderNotePathSettings(container: HTMLElement, app: App, folder: string, value: NotePathSettings,
@@ -39,7 +40,7 @@ export function renderNotePathSettings(container: HTMLElement, app: App, folder:
         input.setValue(format).setPlaceholder("YYYY-MM-DD").onChange(text => { format = text.trim(); showPreview(options()); });
         input.inputEl.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); void apply(options()); } });
       })
-      .addButton(button => button.setButtonText("Save format").onClick(() => apply(options()))).settingEl.addClass("temperans-note-format");
+      .addButton(button => button.setButtonText(t("settings.saveFormat")).onClick(() => apply(options()))).settingEl.addClass("temperans-note-format");
   }
   showPreview(settings);
 }

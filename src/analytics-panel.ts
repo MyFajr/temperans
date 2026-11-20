@@ -1,4 +1,5 @@
-import { calculateAllHabitsAnalytics } from "./analytics";
+import { t, setLocale } from "./i18n";
+successfully downloaded text file (SHA: b7929a9dfbeef42b6db986272d6ec3a4becaea5f)import { calculateAllHabitsAnalytics } from "./analytics";
 import type { HabitAnalytics } from "./analytics";
 import { daysInYear, formatDate, todayInZone } from "./date";
 import { formatTotalVolume, formatValue } from "./dashboard/format";
@@ -57,7 +58,7 @@ export function renderAnalyticsPanel(container: HTMLElement, summary: AnalyticsS
 
     addMetricRow(metricsList, "Consistency", consistencyLabel);
     if (!isBooleanUnit(habit.unit)) {
-      addMetricRow(metricsList, "Total volume", formatTotalVolume(stats.totalVolume, habit.unit, habit));
+      addMetricRow(metricsList, t("analytics.totalVolume"), formatTotalVolume(stats.totalVolume, habit.unit, habit));
       const activeDayCount = habit.cadence === "daily"
         ? ""
         : ` (${stats.activeDays} active day${stats.activeDays === 1 ? "" : "s"})`;
@@ -68,12 +69,12 @@ export function renderAnalyticsPanel(container: HTMLElement, summary: AnalyticsS
 
       if (stats.peakValue > 0) {
         const peakDateFormatted = showPeakDate && stats.peakDate ? ` (${formatDate(stats.peakDate)})` : "";
-        addMetricRow(metricsList, "Single-day peak", `${formatValue(stats.peakValue, habit.unit, habit)}${peakDateFormatted}`);
+        addMetricRow(metricsList, t("analytics.peakDay"), `${formatValue(stats.peakValue, habit.unit, habit)}${peakDateFormatted}`);
       }
     }
 
-    addMetricRow(metricsList, "Current streak", `${stats.currentStreak} ${streakSingular}${stats.currentStreak === 1 ? "" : "s"}`);
-    addMetricRow(metricsList, "Best streak", `${stats.bestStreak} ${streakSingular}${stats.bestStreak === 1 ? "" : "s"}`);
+    addMetricRow(metricsList, t("analytics.currentStreak"), `${stats.currentStreak} ${streakSingular}${stats.currentStreak === 1 ? "" : "s"}`);
+    addMetricRow(metricsList, t("analytics.bestStreak"), `${stats.bestStreak} ${streakSingular}${stats.bestStreak === 1 ? "" : "s"}`);
   }
 }
 

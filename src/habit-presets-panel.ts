@@ -1,4 +1,5 @@
-import { HABIT_PRESETS, HabitPreset } from "./habit-presets";
+import { t, setLocale } from "./i18n";
+successfully downloaded text file (SHA: 4926b06d75be5506ab5fa04a65d2bfae34cb423a)import { HABIT_PRESETS, HabitPreset } from "./habit-presets";
 import { createSubpageCard } from "./ui";
 import { Notice, setIcon } from "obsidian";
 import { HabitStore } from "./data";
@@ -86,7 +87,7 @@ export async function renderBrowsePresets(
       addBtn.onclick = async (e) => {
         e?.stopPropagation?.();
         if (existingIds.has(preset.id)) {
-          new Notice(`“${preset.name}” is already configured.`);
+          new Notice(t("notice.alreadyConfigured", { name: preset.name }));
           return;
         }
         addBtn.disabled = true;
@@ -110,9 +111,9 @@ export async function renderBrowsePresets(
         addBtn.removeClass("mod-cta");
         if (customizeBtn) customizeBtn.addClass("temperans-hidden");
         if (preset.endpoint) {
-          new Notice(`Created “${preset.name}”. Configure API key in Settings → Automated API endpoints.`);
+          new Notice(t("notice.createdEndpoint", { name: preset.name }));
         } else {
-          new Notice(`Created “${preset.name}”.`);
+          new Notice(t("notice.created", { name: preset.name }));
         }
         await options.onAdded();
       };

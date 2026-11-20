@@ -1,4 +1,5 @@
-import { App, Notice, setIcon, setTooltip } from "obsidian";
+import { t, setLocale } from "./i18n";
+successfully downloaded text file (SHA: 99d03b9fb0d8692eceea0e9b6a597baf135b807b)import { App, Notice, setIcon, setTooltip } from "obsidian";
 import { buildAnalyticsShareText, saveAnalyticsExport } from "./analytics-export";
 import type { HabitStore } from "./data";
 import type { AnalyticsSummaryData } from "./analytics-panel";
@@ -77,7 +78,7 @@ export function renderAnalyticsShareActions(
   copyButton.onclick = () => {
     setOpen(false);
     void copyAnalyticsSummary(summary)
-      .then(() => new Notice("Summary copied to clipboard."))
+      .then(() => new Notice(t("notice.copied")))
       .catch((error: unknown) => new Notice(error instanceof Error ? error.message : "Could not copy the summary."));
   };
   jsonButton.onclick = () => saveExport("json");
@@ -109,6 +110,6 @@ export async function copyAnalyticsSummary(summary: AnalyticsSummaryData): Promi
   try {
     await navigator.clipboard.writeText(value);
   } catch {
-    throw new Error("Could not copy the summary. Clipboard access may be blocked.");
+    throw new Error(t("analytics.copyFailed"));
   }
 }
