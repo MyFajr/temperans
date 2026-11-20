@@ -1,3 +1,4 @@
+import { t, plural } from "../../i18n";
 import { setIcon } from "obsidian";
 import { daysInMonth, formatDate, monthLongName, monthShortName, weekdayIndexMonday } from "../../date";
 import { calculateGoalProgress, earliestEffectiveDate, evaluatePeriodGoal } from "../../evaluation";
@@ -27,7 +28,7 @@ function buildCellTooltip(
   overallScore: number | null
 ): string {
   if (isFuture) {
-    return `${formatDate(date)} — future date`;
+    return `${formatDate(date)} — ${t("widget.calendar.future")}`;
   }
   if (selectedHabit && isBooleanUnit(selectedHabit.unit)) {
     const value = periodEvaluation?.value ?? habitEvaluation?.value ?? 0;
@@ -37,15 +38,15 @@ function buildCellTooltip(
     const goal = calculateGoalProgress(periodEvaluation.value, periodEvaluation.target, selectedHabit);
     const percentText = Math.round(goal.progress * 100) + "%";
     const statusDetail = goal.isOverCeiling
-      ? ` (${percentText} — exceeded ceiling by ${formatValue(goal.excess, selectedHabit.unit, selectedHabit)})`
-      : ` (${percentText} complete)`;
+      ? ` (${t("widget.calendar.exceededCeiling", { percent: percentText, excess: formatValue(goal.excess, selectedHabit.unit, selectedHabit) })})`
+      : ` (${t("widget.calendar.percentComplete", { percent: percentText })})`;
     return `${formatDate(date)} — ${formatValue(periodEvaluation.value, selectedHabit.unit, selectedHabit)} / ${targetLabel(periodEvaluation.target, selectedHabit)}${statusDetail} (${periodEvaluation.startDate}–${periodEvaluation.endDate})`;
   }
   if (selectedHabit && habitEvaluation) {
     if (selectedHabit.type === "tracker") {
       return habitEvaluation.value > 0
-        ? `${formatDate(date)} — Tracked: ${formatValue(habitEvaluation.value, selectedHabit.unit, selectedHabit)}`
-        : `${formatDate(date)} — Not logged`;
+        ? `${formatDate(date)} — ${t("widget.calendar.tracked")}: ${formatValue(habitEvaluation.value, selectedHabit.unit, selectedHabit)}`
+        : `${formatDate(date)} — ${t("widget.calendar.notLogged")}`;
     }
     if (selectedHabit.type === "avoidance") {
       const maxLimit = habitEvaluation.target?.max ?? 0;
@@ -53,28 +54,28 @@ function buildCellTooltip(
         const valDetail = habitEvaluation.value > 0
           ? `${formatValue(habitEvaluation.value, selectedHabit.unit, selectedHabit)} / max ${formatValue(maxLimit, selectedHabit.unit, selectedHabit)}`
           : `0 ${selectedHabit.unit}`;
-        return `${formatDate(date)} — Clean day (${valDetail}) — 100% complete`;
+        return `${formatDate(date)} — ${t("widget.calendar.cleanDay", { detail: valDetail })}`;
       }
       const excess = habitEvaluation.value - maxLimit;
-      return `${formatDate(date)} — Slipped: ${formatValue(habitEvaluation.value, selectedHabit.unit, selectedHabit)} (exceeded limit by ${formatValue(excess, selectedHabit.unit, selectedHabit)})`;
+      return `${formatDate(date)} — ${t("widget.calendar.slipped", { value: formatValue(habitEvaluation.value, selectedHabit.unit, selectedHabit), excess: formatValue(excess, selectedHabit.unit, selectedHabit) })}`;
     }
     if (!habitEvaluation.target || (habitEvaluation.target.min === undefined && habitEvaluation.target.max === undefined)) {
-      return `${formatDate(date)} — ${formatValue(habitEvaluation.value, selectedHabit.unit, selectedHabit)} (no target)`;
+      return `${formatDate(date)} — ${formatValue(habitEvaluation.value, selectedHabit.unit, selectedHabit)} (${t("widget.calendar.noTarget")})`;
     }
     const goal = calculateGoalProgress(habitEvaluation.value, habitEvaluation.target, selectedHabit);
     const percentText = Math.round(goal.progress * 100) + "%";
     if (goal.isOverCeiling) {
-      return `${formatDate(date)} — ${formatValue(habitEvaluation.value, selectedHabit.unit, selectedHabit)} / ${targetLabel(habitEvaluation.target, selectedHabit)} (${percentText} — exceeded ceiling by ${formatValue(goal.excess, selectedHabit.unit, selectedHabit)})`;
+      return `${formatDate(date)} — ${formatValue(habitEvaluation.value, selectedHabit.unit, selectedHabit)} / ${targetLabel(habitEvaluation.target, selectedHabit)} (${t("widget.calendar.exceededCeiling", { percent: percentText, excess: formatValue(goal.excess, selectedHabit.unit, selectedHabit) })})`;
     }
-    return `${formatDate(date)} — ${formatValue(habitEvaluation.value, selectedHabit.unit, selectedHabit)} / ${targetLabel(habitEvaluation.target, selectedHabit)} (${percentText} complete)`;
+    return `${formatDate(date)} — ${formatValue(habitEvaluation.value, selectedHabit.unit, selectedHabit)} / ${targetLabel(habitEvaluation.target, selectedHabit)} (${t("widget.calendar.percentComplete", { percent: percentText })})`;
   }
-  return `${formatDate(date)} — ${overallScore === null ? "No active targets" : `${Math.round(overallScore * 100)}% complete`}`;
+  return `${formatDate(date)} — ${overallScore === null ? t("widget.calendar.noActiveTargets") : t("widget.calendar.percentComplete", { percent: Math.round(overallScore * 100) })}`;
 }
 
 export class CalendarWidget implements DashboardWidget {
   id = "calendar";
-  name = "Heat Map & Calendar Grid";
-  description = "53-week annual heat map or monthly grid with keyboard navigation.";
+  name = t("widget.calendar.name");
+  description = t("widget.calendar.description");
 
   render(container: HTMLElement, ctx: WidgetContext, config?: Record<string, unknown>): void {
     container.empty();
@@ -84,14 +85,14 @@ export class CalendarWidget implements DashboardWidget {
 
     const titleEl = container.createEl("h3", { cls: "temperans-calendar-title" });
     titleEl.createSpan({
-      text: !selectedHabit ? "Daily consistency" : `${selectedHabit.name} — ${cadenceLabel(selectedHabit.cadence)} goal`
+      text: !selectedHabit ? t("widget.calendar.dailyConsistencyTitle") : t("widget.calendar.habitGoal", { name: selectedHabit.name, cadence: cadenceLabel(selectedHabit.cadence) })
     });
 
     const infoText = !selectedHabit
-      ? "Darker cells mean more daily targets were completed. Weekly and monthly goals are kept out of this score."
+      ? t("widget.calendar.infoOverall")
       : selectedHabit.cadence === "daily"
-      ? "Darker cells mean this day’s target was met."
-      : `Each cell shows cumulative ${selectedHabit.cadence} progress from the period’s start through that date.`;
+      ? t("widget.calendar.infoDaily")
+      : t("widget.calendar.infoPeriodic", { cadence: cadenceLabel(selectedHabit.cadence) });
 
     const infoIcon = titleEl.createSpan({
       cls: "temperans-info-icon",
@@ -154,7 +155,7 @@ export class CalendarWidget implements DashboardWidget {
   private renderYearHeatmap(section: HTMLElement, ctx: WidgetContext, selectedHabit: HabitDefinition | undefined, showLegend = true): void {
     const layout = section.createDiv({ cls: "temperans-heatmap-layout" });
     const weekdays = layout.createDiv({ cls: "temperans-weekdays" });
-    ["Mon", "", "Wed", "", "Fri", "", ""].forEach((day) => weekdays.createSpan({ text: day }));
+    t("widget.calendar.weekdaysShort").split(",").forEach((day) => weekdays.createSpan({ text: day }));
 
     const main = layout.createDiv({ cls: "temperans-heatmap-main" });
     const labels = main.createDiv({ cls: "temperans-month-labels" });
@@ -184,9 +185,9 @@ export class CalendarWidget implements DashboardWidget {
 
     if (showLegend) {
       const legend = section.createDiv({ cls: "temperans-legend" });
-      legend.createSpan({ text: "Less" });
+      legend.createSpan({ text: t("dashboard.less") });
       for (let value = 0; value <= 4; value += 1) legend.createSpan({ cls: `temperans-legend-cell intensity-${value}` });
-      legend.createSpan({ text: "More" });
+      legend.createSpan({ text: t("dashboard.more") });
     }
   }
 
@@ -213,12 +214,12 @@ export class CalendarWidget implements DashboardWidget {
       .filter((score): score is number => score !== null && score !== undefined);
 
     if (!monthScores.length) {
-      return `${monthName} has no active days yet.`;
+      return t("widget.calendar.monthNoActive", { month: monthName });
     }
 
     const monthAverage = monthScores.reduce((sum, score) => sum + score, 0) / monthScores.length;
-    const consistencyLabel = selectedHabit ? "consistency" : "daily consistency";
-    return `${monthName}: ${Math.round(monthAverage * 100)}% ${consistencyLabel} across ${monthScores.length} active day${monthScores.length === 1 ? "" : "s"}.`;
+    const consistencyLabel = selectedHabit ? t("widget.calendar.consistencyLabel") : t("widget.calendar.dailyConsistencyLabel");
+    return t("widget.calendar.monthSummary", { month: monthName, percent: Math.round(monthAverage * 100), label: consistencyLabel, days: monthScores.length, dayForm: plural(monthScores.length, "analytics.pluralActiveDay") });
   }
 
   private renderMonthGrid(section: HTMLElement, ctx: WidgetContext, selectedHabit: HabitDefinition | undefined, showLegend = true): void {
@@ -229,7 +230,7 @@ export class CalendarWidget implements DashboardWidget {
     });
 
     const grid = section.createDiv({ cls: "temperans-month-grid" });
-    ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].forEach((day) => grid.createSpan({ text: day, cls: "temperans-month-weekday" }));
+    t("widget.calendar.weekdayNames").split(",").forEach((day) => grid.createSpan({ text: day, cls: "temperans-month-weekday" }));
     const offset = monthDates.length ? weekdayIndexMonday(monthDates[0]) : 0;
     for (let i = 0; i < offset; i += 1) grid.createDiv({ cls: "temperans-month-pad" });
     for (const date of monthDates) this.createDayCell(grid, date, ctx, selectedHabit, true);
@@ -238,9 +239,9 @@ export class CalendarWidget implements DashboardWidget {
 
     if (showLegend) {
       const legend = section.createDiv({ cls: "temperans-legend" });
-      legend.createSpan({ text: "Less" });
+      legend.createSpan({ text: t("dashboard.less") });
       for (let value = 0; value <= 4; value += 1) legend.createSpan({ cls: `temperans-legend-cell intensity-${value}` });
-      legend.createSpan({ text: "More" });
+      legend.createSpan({ text: t("dashboard.more") });
     }
   }
 

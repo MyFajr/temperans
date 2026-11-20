@@ -1,11 +1,12 @@
+import { t } from "../../i18n";
 import { evaluatePeriodGoal } from "../../evaluation";
 import { cadenceLabel, formatValue, targetLabel } from "../format";
 import { DashboardWidget, WidgetContext } from "../types";
 
 export class PeriodGoalsWidget implements DashboardWidget {
   id = "period-goals";
-  name = "Periodic Goals & Targets";
-  description = "Progress bars for weekly, monthly, quarterly, and annual habit targets.";
+  name = t("widget.periodGoals.name");
+  description = t("widget.periodGoals.description");
 
   render(container: HTMLElement, ctx: WidgetContext, config?: Record<string, unknown>): void {
     container.empty();
@@ -22,7 +23,7 @@ export class PeriodGoalsWidget implements DashboardWidget {
 
     container.removeClass("temperans-hidden");
     container.addClass("temperans-period-goals");
-    container.createEl("h3", { text: "Periodic targets & goals" });
+    container.createEl("h3", { text: t("widget.periodGoals.title") });
 
     const list = container.createDiv({ cls: "temperans-period-list" });
     for (const habit of periodic) {
@@ -32,7 +33,7 @@ export class PeriodGoalsWidget implements DashboardWidget {
       row.createSpan({ text: `${formatValue(evaluation.value, habit.unit, habit)} / ${targetLabel(evaluation.target, habit)}` });
       row.createSpan({ text: `${cadenceLabel(habit.cadence)} · ${evaluation.startDate}–${evaluation.endDate}` });
       const progress = row.createEl("progress", { attr: { max: "1", value: String(evaluation.progress) } });
-      progress.title = `${Math.round(evaluation.progress * 100)}% of the current ${habit.cadence} target`;
+      progress.title = t("widget.periodGoals.progressTitle", { percent: Math.round(evaluation.progress * 100), cadence: cadenceLabel(habit.cadence) });
     }
   }
 
