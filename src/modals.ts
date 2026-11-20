@@ -1060,8 +1060,8 @@ export class EditHabitModal extends Modal {
         targetSection.createEl("p", {
           cls: "temperans-habit-type-hint",
           text: habitCategory === "avoidance" ? t("desc.avoidanceRecord")
-            : habitCategory === "tracker" ? "Record yes or no without a numeric target."
-            : "Mark done once per cadence. No numeric target needed."
+            : habitCategory === "tracker" ? t("desc.avoidanceRecordForm")
+            : t("desc.buildRecordForm")
         });
       } else if (habitCategory === "avoidance") {
         new Setting(targetSection)
