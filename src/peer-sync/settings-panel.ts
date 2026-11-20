@@ -540,7 +540,7 @@ export class PeerSyncPanelController {
     if (this.transferButton) {
       this.transferButton.disabled = totalSelected === 0;
       if (totalSelected === 0) {
-        this.transferButton.setText("Select files to transfer");
+        this.transferButton.setText(t("peer.selectToTransfer"));
       } else {
         this.transferButton.setText(t("peer.transferN", { n: totalSelected, form: plural(totalSelected, "peer.pluralFile") }));
       }
