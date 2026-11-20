@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { abortable, checkAbort, isAbort } from "../async";
 import { calendarModeFor } from "./format";
 import { ItemView, Notice, Platform, WorkspaceLeaf } from "obsidian";
@@ -68,7 +69,7 @@ export class HabitDashboardView extends ItemView {
       try { await this.renderLatestRefresh(this.request.signal); }
       catch (error) {
         if (!isAbort(error) && !this.request.signal.aborted) {
-          new Notice(error instanceof Error ? error.message : "Dashboard refresh failed.");
+          new Notice(error instanceof Error ? error.message : t("error.dashboardRefreshFailed"));
         }
       }
       if (revision === this.refreshRequested) this.refreshRendered = revision;
@@ -88,7 +89,7 @@ export class HabitDashboardView extends ItemView {
           return;
         }
         this.isCompact = compact;
-        void this.refresh().catch(error => new Notice(error instanceof Error ? error.message : "Dashboard refresh failed."));
+        void this.refresh().catch(error => new Notice(error instanceof Error ? error.message : t("error.dashboardRefreshFailed")));
       });
     });
     this.paneObserver.observe(this.contentEl);
@@ -143,8 +144,8 @@ export class HabitDashboardView extends ItemView {
     this.renderedContext = ctx;
     if (layout.error) {
       const banner = container.createDiv({ cls: "temperans-dashboard-error-banner" });
-      banner.createSpan({ text: layout.error + ". Displaying default layout." });
-      const dismiss = banner.createEl("button", { text: "Dismiss", attr: { type: "button" } });
+      banner.createSpan({ text: layout.error + " " + t("dashboard.usingDefaultLayout") });
+      const dismiss = banner.createEl("button", { text: t("log.dismiss"), attr: { type: "button" } });
       dismiss.onclick = () => banner.remove();
     }
     for (const item of layout.widgets) {
@@ -163,7 +164,7 @@ export class HabitDashboardView extends ItemView {
     const next = this.dayButtons.get(date);
     next?.addClass("is-selected"); next?.setAttr("aria-pressed", "true");
     if (next && !next.disabled) next.tabIndex = 0;
-    void this.staged?.selectDay(date).catch(error => { if (!isAbort(error)) new Notice(error instanceof Error ? error.message : "Could not load the selected day."); });
+    void this.staged?.selectDay(date).catch(error => { if (!isAbort(error)) new Notice(error instanceof Error ? error.message : t("error.couldNotLoadDay")); });
   }
   cancelRender(): void { this.request?.abort(); }
 

@@ -32,7 +32,7 @@ export class TemperansCodeblockChild extends MarkdownRenderChild {
     }
     this.controller?.abort(); this.controller = new AbortController();
     try { await renderTemperansCodeblock(this.app, this.host, this.source, this.containerEl, this.controller.signal, () => this.render()); }
-    catch (error) { if (!isAbort(error)) new Notice(error instanceof Error ? error.message : "Dashboard refresh failed."); }
+    catch (error) { if (!isAbort(error)) new Notice(error instanceof Error ? error.message : t("error.dashboardRefreshFailed")); }
   }
   cancelRender(): void { this.controller?.abort(); }
   onunload(): void {
