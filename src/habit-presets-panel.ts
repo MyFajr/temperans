@@ -1,5 +1,5 @@
 import { t, setLocale } from "./i18n";
-successfully downloaded text file (SHA: 4926b06d75be5506ab5fa04a65d2bfae34cb423a)import { HABIT_PRESETS, HabitPreset } from "./habit-presets";
+import { HABIT_PRESETS, HabitPreset } from "./habit-presets";
 import { createSubpageCard } from "./ui";
 import { Notice, setIcon } from "obsidian";
 import { HabitStore } from "./data";
@@ -24,12 +24,12 @@ export async function renderBrowsePresets(
     {
       key: "health-connect",
       title: "Health Connect",
-      desc: "Biometric and health metrics exported by the Android companion app."
+      desc: t("presets.healthConnectDesc")
     },
     {
       key: "connected-apis",
       title: "Connected APIs",
-      desc: "Third-party services with REST API endpoints and secret storage."
+      desc: t("presets.connectedApisDesc")
     }
   ];
 
@@ -68,7 +68,7 @@ export async function renderBrowsePresets(
       if (options.onCustomize && !isAlreadyAdded) {
         customizeBtn = actions.createEl("button", {
           cls: "temperans-preset-add-btn",
-          text: "Customize",
+          text: t("presets.customize"),
           attr: { type: "button" }
         });
         customizeBtn.onclick = (e) => {
@@ -79,7 +79,7 @@ export async function renderBrowsePresets(
 
       const addBtn = actions.createEl("button", {
         cls: `temperans-preset-add-btn ${isAlreadyAdded ? "" : "mod-cta"}`,
-        text: isAlreadyAdded ? "Configured" : "Add",
+        text: isAlreadyAdded ? t("presets.configured") : t("presets.add"),
         attr: { type: "button" }
       });
       addBtn.disabled = isAlreadyAdded;
@@ -107,7 +107,7 @@ export async function renderBrowsePresets(
           ...(preset.endpoint ? { endpoint: preset.endpoint } : {})
         });
         existingIds.add(preset.id);
-        addBtn.textContent = "Configured";
+        addBtn.textContent = t("presets.configured");
         addBtn.removeClass("mod-cta");
         if (customizeBtn) customizeBtn.addClass("temperans-hidden");
         if (preset.endpoint) {

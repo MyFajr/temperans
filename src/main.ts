@@ -1,5 +1,5 @@
 import { t, setLocale } from "./i18n";
-successfully downloaded text file (SHA: 24464d08c31efc1485dce3022622db80368437eb)import { DebouncedTask } from "./async";
+import { DebouncedTask } from "./async";
 import { operationFolder } from "./paths";
 import { healthConnectStagePath } from "./integrations/health-connect";
 import { HealthConnectPathControl } from "./integrations/health-connect-panel";
@@ -131,10 +131,10 @@ export default class TemperansHabitsPlugin extends Plugin {
       if (url && code) {
         try {
           await this.peerSync.saveRemoteProfile(url, code);
-          new Notice("Temperans Habits: Paired with desktop host.");
+          new Notice(t("notice.paired"));
           this.openPeerSync();
         } catch (e) {
-          new Notice(t("notice.pairFailed", { error: + error: e instanceof Error ? e.message : String(e) }));
+          new Notice(t("notice.pairFailed", { error: e instanceof Error ? e.message : String(e) }));
         }
       } else {
         new Notice(t("notice.pairInvalid"));
@@ -147,7 +147,7 @@ export default class TemperansHabitsPlugin extends Plugin {
         await this.rebuildHabitCommands();
       } catch (error) {
         console.error("Temperans Habits could not initialize Habit Logs.", error);
-        new Notice("Temperans Habits started, but Habit Logs could not be initialized. Check the configured folder in plugin settings.");
+        new Notice(t("notice.initFail"));
       }
     });
 
@@ -156,11 +156,11 @@ export default class TemperansHabitsPlugin extends Plugin {
       if (file instanceof TFile && file.extension !== "md") return;
       this.store.invalidate(file instanceof TFolder ? undefined : file.path);
       if (file.path === this.store.settingsPath) this.queueHabitCommandRefresh();
-      void this.refreshDashboards().catch(error => { new Notice(error instanceof Error ? error.message : "Dashboard refresh failed."); });
+      void this.refreshDashboards().catch(error => { new Notice(error instanceof Error ? error.message : t("error.dashboardRefreshFailed")); });
     };
     this.registerEvent(this.app.metadataCache.on("changed", (file, _data, cache) => {
       if (this.store.metadataChanged(file, cache.frontmatter ?? {})) {
-        void this.refreshDashboards().catch(error => new Notice(error instanceof Error ? error.message : "Dashboard refresh failed."));
+        void this.refreshDashboards().catch(error => new Notice(error instanceof Error ? error.message : t("error.dashboardRefreshFailed")));
       }
     }));
     this.registerEvent(this.app.vault.on("modify", react));
@@ -172,7 +172,7 @@ export default class TemperansHabitsPlugin extends Plugin {
         if (file instanceof TFolder) this.store.invalidate();
         else { this.store.invalidate(oldPath); this.store.invalidate(file.path); }
         if (file.path === this.store.settingsPath || oldPath === this.store.settingsPath) this.queueHabitCommandRefresh();
-        void this.refreshDashboards().catch(error => { new Notice(error instanceof Error ? error.message : "Dashboard refresh failed."); });
+        void this.refreshDashboards().catch(error => { new Notice(error instanceof Error ? error.message : t("error.dashboardRefreshFailed")); });
       }
     }));
   }
@@ -333,7 +333,7 @@ export default class TemperansHabitsPlugin extends Plugin {
       }
       await this.refreshDashboards();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Sync failed";
+      const message = error instanceof Error ? error.message : t("error.syncFailed");
       new Notice(t("notice.syncFailed", { name: habit.name, error: message }));
     }
   }
@@ -358,8 +358,8 @@ export default class TemperansHabitsPlugin extends Plugin {
   async migrateHabitLogFormat(): Promise<void> {
     const result = await this.store.migrateHabitLogFormat();
     await this.refreshDashboards();
-    const current = result.alreadyCurrent ? ` ${result.alreadyCurrent} already used the current format.` : "";
-    new Notice(t("notice.migrated", { n: result.migrated }) + "."${current}`);
+    const current = result.alreadyCurrent ? " " + t("notice.alreadyCurrent", { n: result.alreadyCurrent }) : "";
+    new Notice(t("notice.migrated", { n: result.migrated }) + current);
   }
 
   openThirdPartySync(): void {
@@ -399,7 +399,7 @@ export default class TemperansHabitsPlugin extends Plugin {
       return summary;
     } catch (error) {
       console.error("Temperans Habits companion import failed.", error);
-      new Notice(error instanceof Error ? error.message : "Companion import failed. The staging file was kept.");
+      new Notice(error instanceof Error ? error.message : t("error.companionImportFailed"));
       return null;
     }
   }
@@ -416,13 +416,13 @@ export default class TemperansHabitsPlugin extends Plugin {
     try {
       const summary = await loadAnalyticsSummaryData(this.store);
       if (!summary.habits.length) {
-        new Notice("No enabled habits to share.");
+        new Notice(t("notice.noEnabledToShare"));
         return;
       }
       await copyAnalyticsSummary(summary);
-      new Notice("Summary copied to clipboard.");
+      new Notice(t("notice.copied"));
     } catch (error) {
-      new Notice(error instanceof Error ? error.message : "Could not copy the analytics summary.");
+      new Notice(error instanceof Error ? error.message : t("analytics.copyFailed"));
     }
   }
 
@@ -430,13 +430,13 @@ export default class TemperansHabitsPlugin extends Plugin {
     try {
       const summary = await loadAnalyticsSummaryData(this.store);
       if (!summary.habits.length) {
-        new Notice("No enabled habits to share.");
+        new Notice(t("notice.noEnabledToShare"));
         return;
       }
       const path = await saveAnalyticsExport(this.app, this.store, summary, format);
-      new Notice(format === "csv" ? `Saved CSV and period metadata: ${path}` : `Saved JSON summary: ${path}`);
+      new Notice(format === "csv" ? t("notice.savedCsv", { path }) : t("notice.savedJson", { path }));
     } catch (error) {
-      new Notice(error instanceof Error ? error.message : `Could not save the ${format.toUpperCase()} summary.`);
+      new Notice(error instanceof Error ? error.message : t("notice.couldNotSaveSummary", { format: format.toUpperCase() }));
     }
   }
 
@@ -462,7 +462,7 @@ export default class TemperansHabitsPlugin extends Plugin {
       const id = `log-${habit.id}`;
       this.addCommand({
         id,
-        name: `Log ${habit.name} today`,
+        name: t("command.logHabitToday", { name: habit.name }),
         callback: () => void this.openLogModal(habit.id)
       });
       this.habitCommandIds.add(id);
@@ -471,7 +471,7 @@ export default class TemperansHabitsPlugin extends Plugin {
         const syncId = `sync-endpoint-${habit.id}`;
         this.addCommand({
           id: syncId,
-          name: `Sync ${habit.name} from endpoint`,
+          name: t("command.syncHabitFromEndpoint", { name: habit.name }),
           callback: () => void this.syncEndpointHabit(habit.id)
         });
         this.habitCommandIds.add(syncId);

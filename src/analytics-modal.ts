@@ -1,5 +1,5 @@
 import { t, setLocale } from "./i18n";
-successfully downloaded text file (SHA: 3793103929bc58cf43ef39fbe6a08c48c226b9fd)import { App, Modal } from "obsidian";
+import { App, Modal } from "obsidian";
 import type { HabitStore } from "./data";
 import { loadAnalyticsSummaryData, renderAnalyticsPanel } from "./analytics-panel";
 import { renderAnalyticsShareActions } from "./analytics-share";
@@ -23,7 +23,7 @@ export class HabitAnalyticsModal extends Modal {
     contentEl.empty();
     const summary = await loadAnalyticsSummaryData(this.store, this.year);
     const header = contentEl.createDiv({ cls: "temperans-analytics-header" });
-    header.createEl("h2", { text: `Habit analytics — ${this.year}` });
+    header.createEl("h2", { text: t("header.analyticsYear", { year: this.year }) });
     if (summary.habits.length) renderAnalyticsShareActions(header, this.app, this.store, summary);
     contentEl.createEl("p", {
       text: t("analytics.shareIntro")
