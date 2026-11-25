@@ -64,7 +64,7 @@ export async function renderAddHabitForm(
 
   const archetypes: Array<{ key: "build" | "avoidance" | "tracker"; icon: string; title: string; desc: string }> = [
     { key: "build", icon: "sparkles", title: t("habit.build"), desc: t("form.buildDesc") },
-    { key: "avoidance", icon: "shield-alert", title: t("habit.avoidance"), desc: t("form.avoidanceDesc") },
+    { key: "avoidance", icon: "shield-alert", title: t("habit.avoidanceType"), desc: t("form.avoidanceDesc") },
     { key: "tracker", icon: "scale", title: t("habit.trackerForm"), desc: t("form.trackerDesc") }
   ];
 
