@@ -1,3 +1,4 @@
+import { t, plural } from "./i18n";
 import { calculateAllHabitsAnalytics } from "./analytics";
 import type { HabitAnalytics } from "./analytics";
 import { daysInYear, formatDate, todayInZone } from "./date";
@@ -31,7 +32,7 @@ export async function loadAnalyticsSummaryData(store: HabitStore, year?: number)
 
 export function renderAnalyticsPanel(container: HTMLElement, summary: AnalyticsSummaryData, showPeakDate = true): void {
   if (!summary.habits.length) {
-    container.createEl("p", { text: "No enabled habits found in Settings.md." });
+    container.createEl("p", { text: t("notice.noEnabledFound") });
     return;
   }
 
@@ -45,35 +46,40 @@ export function renderAnalyticsPanel(container: HTMLElement, summary: AnalyticsS
 
     const metricsList = card.createDiv({ cls: "temperans-analytics-metrics" });
 
-    const periodSingular = habit.cadence === "weekly" ? "week"
-      : habit.cadence === "monthly" ? "month"
-      : habit.cadence === "quarterly" ? "quarter"
-      : "year";
-    const streakSingular = habit.cadence === "daily" ? "day" : periodSingular;
+    const periodSingular = habit.cadence === "weekly" ? t("analytics.week")
+      : habit.cadence === "monthly" ? t("analytics.month")
+      : habit.cadence === "quarterly" ? t("analytics.quarter")
+      : t("analytics.year");
+    const streakSingular = habit.cadence === "daily" ? t("analytics.day") : periodSingular;
+    const periodTag = habit.cadence === "weekly" ? "analytics.pluralWeek"
+      : habit.cadence === "monthly" ? "analytics.pluralMonth"
+      : habit.cadence === "quarterly" ? "analytics.pluralQuarter"
+      : "analytics.pluralYear";
+    const streakTag = habit.cadence === "daily" ? "plural.dayForms" : periodTag;
 
     const consistencyLabel = habit.cadence === "daily"
-      ? `${Math.round(stats.consistencyRate * 100)}% (${stats.completedDays} / ${stats.totalDays} days)`
-      : `${Math.round(stats.consistencyRate * 100)}% (${stats.completedPeriods ?? 0} / ${stats.totalPeriods ?? 0} ${periodSingular}s)`;
+      ? `${Math.round(stats.consistencyRate * 100)}% (${stats.completedDays} / ${stats.totalDays} ${plural(stats.totalDays, "plural.dayForms")})`
+      : `${Math.round(stats.consistencyRate * 100)}% (${stats.completedPeriods ?? 0} / ${stats.totalPeriods ?? 0} ${plural(stats.totalPeriods ?? 0, periodTag)})`;
 
-    addMetricRow(metricsList, "Consistency", consistencyLabel);
+    addMetricRow(metricsList, t("analytics.consistencyRate"), consistencyLabel);
     if (!isBooleanUnit(habit.unit)) {
-      addMetricRow(metricsList, "Total volume", formatTotalVolume(stats.totalVolume, habit.unit, habit));
+      addMetricRow(metricsList, t("analytics.totalVolume"), formatTotalVolume(stats.totalVolume, habit.unit, habit));
       const activeDayCount = habit.cadence === "daily"
         ? ""
-        : ` (${stats.activeDays} active day${stats.activeDays === 1 ? "" : "s"})`;
-      addMetricRow(metricsList, "Avg / active day", `${formatValue(stats.averageActiveDays, habit.unit, habit)}${activeDayCount}`);
+        : ` (${stats.activeDays} ${plural(stats.activeDays, "analytics.pluralActiveDay")})`;
+      addMetricRow(metricsList, t("analytics.avgActiveDay"), `${formatValue(stats.averageActiveDays, habit.unit, habit)}${activeDayCount}`);
       if (habit.cadence !== "daily") {
-        addMetricRow(metricsList, `Avg / ${periodSingular}`, formatValue(stats.periodAverage ?? 0, habit.unit, habit));
+        addMetricRow(metricsList, t("analytics.avgPeriod", { period: periodSingular }), formatValue(stats.periodAverage ?? 0, habit.unit, habit));
       }
 
       if (stats.peakValue > 0) {
         const peakDateFormatted = showPeakDate && stats.peakDate ? ` (${formatDate(stats.peakDate)})` : "";
-        addMetricRow(metricsList, "Single-day peak", `${formatValue(stats.peakValue, habit.unit, habit)}${peakDateFormatted}`);
+        addMetricRow(metricsList, t("analytics.peakDay"), `${formatValue(stats.peakValue, habit.unit, habit)}${peakDateFormatted}`);
       }
     }
 
-    addMetricRow(metricsList, "Current streak", `${stats.currentStreak} ${streakSingular}${stats.currentStreak === 1 ? "" : "s"}`);
-    addMetricRow(metricsList, "Best streak", `${stats.bestStreak} ${streakSingular}${stats.bestStreak === 1 ? "" : "s"}`);
+    addMetricRow(metricsList, t("analytics.currentStreak"), `${stats.currentStreak} ${plural(stats.currentStreak, streakTag)}`);
+    addMetricRow(metricsList, t("analytics.bestStreak"), `${stats.bestStreak} ${plural(stats.bestStreak, streakTag)}`);
   }
 }
 

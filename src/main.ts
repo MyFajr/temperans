@@ -1,3 +1,4 @@
+import { t, setLocale } from "./i18n";
 import { DebouncedTask } from "./async";
 import { operationFolder } from "./paths";
 import { healthConnectStagePath } from "./integrations/health-connect";
@@ -93,21 +94,21 @@ export default class TemperansHabitsPlugin extends Plugin {
     this.store = new HabitStore(this.app, this.state.folder, () => this.state.notePath);
     this.peerSync = new PeerSyncService(this);
     this.registerView(DASHBOARD_VIEW_TYPE, (leaf) => new HabitDashboardView(leaf, this));
-    this.addRibbonIcon("chart-no-axes-combined", "Open Temperans Habits", () => void this.openDashboard());
-    this.addCommand({ id: "open-dashboard", name: "Open habit dashboard", callback: () => void this.openDashboard() });
-    this.addCommand({ id: "log-today", name: "Log a habit today", callback: () => void this.openLogModal() });
-    this.addCommand({ id: "test-monkeytype-connection", name: "Test Monkeytype ApeKey connection", callback: () => void this.testMonkeytypeConnection() });
-    this.addCommand({ id: "sync-monkeytype", name: "Import last 7 days from Monkeytype", callback: () => void this.syncMonkeytype() });
-    this.addCommand({ id: "migrate-habit-log-format", name: "Migrate habit-log format", callback: () => void this.migrateHabitLogFormat() });
-    this.addCommand({ id: "sync-all-endpoints", name: "Sync all external endpoints", callback: () => void this.syncAllEndpoints() });
-    this.addCommand({ id: "open-analytics-summary", name: "Open habit analytics summary", callback: () => this.openAnalyticsSummary() });
-    this.addCommand({ id: "copy-analytics-summary", name: "Copy analytics summary", icon: "share", callback: () => void this.copyCurrentAnalyticsSummary() });
-    this.addCommand({ id: "save-analytics-summary-json", name: "Save analytics summary as JSON", icon: "file-json", callback: () => void this.saveCurrentAnalyticsSummary("json") });
-    this.addCommand({ id: "save-analytics-summary-csv", name: "Save analytics summary as csv", icon: "file-spreadsheet", callback: () => void this.saveCurrentAnalyticsSummary("csv") });
-    this.addCommand({ id: "customize-dashboard-layout", name: "Customize dashboard layout (Dashboard.md)", callback: () => void this.openDashboardConfig() });
-    this.addCommand({ id: "open-third-party-sync", name: "Open third-party sync", callback: () => this.openThirdPartySync() });
-    this.addCommand({ id: "import-health-connect", name: "Import companion data", callback: () => void this.importHealthConnect() });
-    this.addCommand({ id: "open-peer-sync", name: "Open local peer sync", callback: () => this.openPeerSync() });
+    this.addRibbonIcon("chart-no-axes-combined", t("ribbon.open"), () => void this.openDashboard());
+    this.addCommand({ id: "open-dashboard", name: t("commands.openDashboard"), callback: () => void this.openDashboard() });
+    this.addCommand({ id: "log-today", name: t("commands.logToday"), callback: () => void this.openLogModal() });
+    this.addCommand({ id: "test-monkeytype-connection", name: t("commands.testMonkeytype"), callback: () => void this.testMonkeytypeConnection() });
+    this.addCommand({ id: "sync-monkeytype", name: t("commands.importMonkeytypeLast7"), callback: () => void this.syncMonkeytype() });
+    this.addCommand({ id: "migrate-habit-log-format", name: t("commands.migrateFormat"), callback: () => void this.migrateHabitLogFormat() });
+    this.addCommand({ id: "sync-all-endpoints", name: t("commands.syncAllEndpoints"), callback: () => void this.syncAllEndpoints() });
+    this.addCommand({ id: "open-analytics-summary", name: t("commands.openAnalytics"), callback: () => this.openAnalyticsSummary() });
+    this.addCommand({ id: "copy-analytics-summary", name: t("commands.copyAnalytics"), icon: "share", callback: () => void this.copyCurrentAnalyticsSummary() });
+    this.addCommand({ id: "save-analytics-summary-json", name: t("commands.saveJson"), icon: "file-json", callback: () => void this.saveCurrentAnalyticsSummary("json") });
+    this.addCommand({ id: "save-analytics-summary-csv", name: t("commands.saveCsv"), icon: "file-spreadsheet", callback: () => void this.saveCurrentAnalyticsSummary("csv") });
+    this.addCommand({ id: "customize-dashboard-layout", name: t("commands.customizeDashboard"), callback: () => void this.openDashboardConfig() });
+    this.addCommand({ id: "open-third-party-sync", name: t("commands.openThirdPartySync"), callback: () => this.openThirdPartySync() });
+    this.addCommand({ id: "import-health-connect", name: t("commands.importCompanion"), callback: () => void this.importHealthConnect() });
+    this.addCommand({ id: "open-peer-sync", name: t("commands.peerSync"), callback: () => this.openPeerSync() });
     this.addSettingTab(new TemperansSettingTab(this.app, this));
 
     const codeblockHandler = (source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
@@ -130,13 +131,13 @@ export default class TemperansHabitsPlugin extends Plugin {
       if (url && code) {
         try {
           await this.peerSync.saveRemoteProfile(url, code);
-          new Notice("Temperans Habits: Paired with desktop host.");
+          new Notice(t("notice.paired"));
           this.openPeerSync();
         } catch (e) {
-          new Notice("Failed to pair: " + (e instanceof Error ? e.message : String(e)));
+          new Notice(t("notice.pairFailed", { error: e instanceof Error ? e.message : String(e) }));
         }
       } else {
-        new Notice("Invalid pairing link.");
+        new Notice(t("notice.pairInvalid"));
       }
     });
 
@@ -146,7 +147,7 @@ export default class TemperansHabitsPlugin extends Plugin {
         await this.rebuildHabitCommands();
       } catch (error) {
         console.error("Temperans Habits could not initialize Habit Logs.", error);
-        new Notice("Temperans Habits started, but Habit Logs could not be initialized. Check the configured folder in plugin settings.");
+        new Notice(t("notice.initFail"));
       }
     });
 
@@ -155,11 +156,11 @@ export default class TemperansHabitsPlugin extends Plugin {
       if (file instanceof TFile && file.extension !== "md") return;
       this.store.invalidate(file instanceof TFolder ? undefined : file.path);
       if (file.path === this.store.settingsPath) this.queueHabitCommandRefresh();
-      void this.refreshDashboards().catch(error => { new Notice(error instanceof Error ? error.message : "Dashboard refresh failed."); });
+      void this.refreshDashboards().catch(error => { new Notice(error instanceof Error ? error.message : t("error.dashboardRefreshFailed")); });
     };
     this.registerEvent(this.app.metadataCache.on("changed", (file, _data, cache) => {
       if (this.store.metadataChanged(file, cache.frontmatter ?? {})) {
-        void this.refreshDashboards().catch(error => new Notice(error instanceof Error ? error.message : "Dashboard refresh failed."));
+        void this.refreshDashboards().catch(error => new Notice(error instanceof Error ? error.message : t("error.dashboardRefreshFailed")));
       }
     }));
     this.registerEvent(this.app.vault.on("modify", react));
@@ -171,7 +172,7 @@ export default class TemperansHabitsPlugin extends Plugin {
         if (file instanceof TFolder) this.store.invalidate();
         else { this.store.invalidate(oldPath); this.store.invalidate(file.path); }
         if (file.path === this.store.settingsPath || oldPath === this.store.settingsPath) this.queueHabitCommandRefresh();
-        void this.refreshDashboards().catch(error => { new Notice(error instanceof Error ? error.message : "Dashboard refresh failed."); });
+        void this.refreshDashboards().catch(error => { new Notice(error instanceof Error ? error.message : t("error.dashboardRefreshFailed")); });
       }
     }));
   }
@@ -255,11 +256,11 @@ export default class TemperansHabitsPlugin extends Plugin {
     const settings = await this.store.loadSettings();
     const habits = settings.habits.filter((habit) => habit.enabled);
     if (habitId && !habits.some((habit) => habit.id === habitId)) {
-      new Notice("That task is no longer in Habit Logs/Settings.md.");
+      new Notice(t("notice.unknownTask"));
       return;
     }
     if (!habits.length) {
-      new Notice("Enable at least one habit in Habit Logs/Settings.md.");
+      new Notice(t("notice.enableAtLeastOne"));
       return;
     }
     new HabitLogModal(
@@ -285,7 +286,7 @@ export default class TemperansHabitsPlugin extends Plugin {
     const settings = await this.store.loadSettings();
     const habit = settings.habits.find((h) => h.id === habitId);
     if (!habit || !habit.endpoint) {
-      new Notice(`No external endpoint configured for ${habitId}.`);
+      new Notice(t("notice.noEndpoint", { habitId }));
       return false;
     }
     const secretKey = habit.endpoint.auth?.secretKey || (habit.id === "typing" ? this.state.monkeytypeSecretName : "");
@@ -294,16 +295,16 @@ export default class TemperansHabitsPlugin extends Plugin {
       secret = this.getSecretValue(this.state.monkeytypeSecretName);
     }
     if (!secret && habit.endpoint.auth?.type && habit.endpoint.auth.type !== "none") {
-      new Notice(`No secret found in secret storage for ${habit.name} (key: "${secretKey}"). Configure it in Settings → Automated API endpoints.`);
+      new Notice(t("notice.noSecret", { name: habit.name, key: secretKey }));
       return false;
     }
     const today = todayInZone(settings.timezone);
     const result = await testEndpointConnection(habit.endpoint, secret, today, requestUrl, settings.timezone);
     if (result.ok) {
-      new Notice(`Endpoint connection for ${habit.name} verified.`);
+      new Notice(t("notice.endpointVerified", { name: habit.name }));
       return true;
     }
-    new Notice(`Endpoint test for ${habit.name} failed (${result.error || `HTTP ${result.status}`}).`);
+    new Notice(t("notice.endpointTestFailed", { name: habit.name, error: result.error || ("HTTP " + result.status) }));
     return false;
   }
 
@@ -311,7 +312,7 @@ export default class TemperansHabitsPlugin extends Plugin {
     const settings = await this.store.loadSettings();
     const habit = settings.habits.find((h) => h.id === habitId);
     if (!habit || !habit.endpoint) {
-      new Notice(`No external endpoint configured for ${habitId}.`);
+      new Notice(t("notice.noEndpoint", { habitId }));
       return;
     }
     const secretKey = habit.endpoint.auth?.secretKey || (habit.id === "typing" ? this.state.monkeytypeSecretName : "");
@@ -320,20 +321,20 @@ export default class TemperansHabitsPlugin extends Plugin {
       secret = this.getSecretValue(this.state.monkeytypeSecretName);
     }
     if (!secret && habit.endpoint.auth?.type && habit.endpoint.auth.type !== "none") {
-      new Notice(`No secret found in secret storage for ${habit.name} (key: "${secretKey}"). Configure it in Settings → Automated API endpoints.`);
+      new Notice(t("notice.noSecret", { name: habit.name, key: secretKey }));
       return;
     }
     try {
       const summary = await syncHabitFromEndpoint(habit, this.store, secret, 7, requestUrl);
       if (summary.daysImported === 0 && summary.daysUpdated === 0) {
-        new Notice(`${summary.habitName}: ${summary.daysProtected} protected, ${summary.daysSkipped} skipped. No new values written.`);
+        new Notice(t("notice.protectedSummary", { name: summary.habitName, protected: summary.daysProtected, skipped: summary.daysSkipped }));
       } else {
-        new Notice(`Synced ${summary.habitName}: ${summary.daysImported} imported, ${summary.daysUpdated} updated.`);
+        new Notice(t("notice.synced", { name: summary.habitName, imported: summary.daysImported, updated: summary.daysUpdated }));
       }
       await this.refreshDashboards();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Sync failed";
-      new Notice(`Sync failed for ${habit.name}: ${message}`);
+      const message = error instanceof Error ? error.message : t("error.syncFailed");
+      new Notice(t("notice.syncFailed", { name: habit.name, error: message }));
     }
   }
 
@@ -341,7 +342,7 @@ export default class TemperansHabitsPlugin extends Plugin {
     const settings = await this.store.loadSettings();
     const endpointHabits = settings.habits.filter((h) => h.enabled && h.endpoint);
     if (!endpointHabits.length) {
-      new Notice("No habits with external endpoints are configured in Settings.md.");
+      new Notice(t("notice.noEndpointsConfigured"));
       return;
     }
     for (const habit of endpointHabits) {
@@ -357,8 +358,8 @@ export default class TemperansHabitsPlugin extends Plugin {
   async migrateHabitLogFormat(): Promise<void> {
     const result = await this.store.migrateHabitLogFormat();
     await this.refreshDashboards();
-    const current = result.alreadyCurrent ? ` ${result.alreadyCurrent} already used the current format.` : "";
-    new Notice(`Migrated ${result.migrated} habit log${result.migrated === 1 ? "" : "s"}.${current}`);
+    const current = result.alreadyCurrent ? " " + t("notice.alreadyCurrent", { n: result.alreadyCurrent }) : "";
+    new Notice(t("notice.migrated", { n: result.migrated }) + current);
   }
 
   openThirdPartySync(): void {
@@ -391,14 +392,14 @@ export default class TemperansHabitsPlugin extends Plugin {
   async importHealthConnect(weekEnding?: string): Promise<HealthConnectImportSummary | null> {
     try {
       const summary = await importHealthConnectStaging(this, weekEnding);
-      new Notice(`Companion data: ${summary.imported} imported, ${summary.updated} updated, ${summary.protected} protected, ${summary.skipped} skipped. Export retained for retry.`);
+      new Notice(t("notice.companionSummary", { imported: summary.imported, updated: summary.updated, protected: summary.protected, skipped: summary.skipped }));
       if (summary.unconfiguredMetrics && summary.unconfiguredMetrics.length > 0) {
-        new Notice(`Found staged data for ${summary.unconfiguredMetrics.join(", ")}. Add matching habits in settings to track them.`);
+        new Notice(t("notice.stagedFound", { metrics: summary.unconfiguredMetrics.join(", ") }));
       }
       return summary;
     } catch (error) {
       console.error("Temperans Habits companion import failed.", error);
-      new Notice(error instanceof Error ? error.message : "Companion import failed. The staging file was kept.");
+      new Notice(error instanceof Error ? error.message : t("error.companionImportFailed"));
       return null;
     }
   }
@@ -415,13 +416,13 @@ export default class TemperansHabitsPlugin extends Plugin {
     try {
       const summary = await loadAnalyticsSummaryData(this.store);
       if (!summary.habits.length) {
-        new Notice("No enabled habits to share.");
+        new Notice(t("notice.noEnabledToShare"));
         return;
       }
       await copyAnalyticsSummary(summary);
-      new Notice("Summary copied to clipboard.");
+      new Notice(t("notice.copied"));
     } catch (error) {
-      new Notice(error instanceof Error ? error.message : "Could not copy the analytics summary.");
+      new Notice(error instanceof Error ? error.message : t("analytics.copyFailed"));
     }
   }
 
@@ -429,13 +430,13 @@ export default class TemperansHabitsPlugin extends Plugin {
     try {
       const summary = await loadAnalyticsSummaryData(this.store);
       if (!summary.habits.length) {
-        new Notice("No enabled habits to share.");
+        new Notice(t("notice.noEnabledToShare"));
         return;
       }
       const path = await saveAnalyticsExport(this.app, this.store, summary, format);
-      new Notice(format === "csv" ? `Saved CSV and period metadata: ${path}` : `Saved JSON summary: ${path}`);
+      new Notice(format === "csv" ? t("notice.savedCsv", { path }) : t("notice.savedJson", { path }));
     } catch (error) {
-      new Notice(error instanceof Error ? error.message : `Could not save the ${format.toUpperCase()} summary.`);
+      new Notice(error instanceof Error ? error.message : t("notice.couldNotSaveSummary", { format: format.toUpperCase() }));
     }
   }
 
@@ -461,7 +462,7 @@ export default class TemperansHabitsPlugin extends Plugin {
       const id = `log-${habit.id}`;
       this.addCommand({
         id,
-        name: `Log ${habit.name} today`,
+        name: t("command.logHabitToday", { name: habit.name }),
         callback: () => void this.openLogModal(habit.id)
       });
       this.habitCommandIds.add(id);
@@ -470,7 +471,7 @@ export default class TemperansHabitsPlugin extends Plugin {
         const syncId = `sync-endpoint-${habit.id}`;
         this.addCommand({
           id: syncId,
-          name: `Sync ${habit.name} from endpoint`,
+          name: t("command.syncHabitFromEndpoint", { name: habit.name }),
           callback: () => void this.syncEndpointHabit(habit.id)
         });
         this.habitCommandIds.add(syncId);
@@ -505,3 +506,7 @@ export default class TemperansHabitsPlugin extends Plugin {
     void this.peerSync?.stopHost();
   }
 }
+
+// Локаль (ru/en): определяется языком интерфейса Obsidian, иначе английский.
+const OBS_LANG = typeof window !== "undefined" && (window as any).localStorage ? (window as any).localStorage.getItem("language") : "";
+if (OBS_LANG && OBS_LANG !== "en") setLocale(OBS_LANG);

@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import { App, Modal } from "obsidian";
 import { HealthConnectImportSummary } from "./health-connect";
 import { HealthConnectPathControl, renderHealthConnectPanel } from "./health-connect-panel";
@@ -15,7 +16,7 @@ export class ThirdPartySyncHubModal extends Modal {
 
   onOpen(): void {
     this.modalEl.addClass("temperans-modal", "temperans-third-party-sync-modal");
-    this.contentEl.createEl("h2", { text: "Companion data import" });
+    this.contentEl.createEl("h2", { text: t("settings.companionImport") });
     renderHealthConnectPanel(this.contentEl, (weekEnding) => this.host.importHealthConnect(weekEnding), async () => this.close(), this.host.healthConnectPathControl?.());
   }
 

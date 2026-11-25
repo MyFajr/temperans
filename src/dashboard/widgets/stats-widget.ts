@@ -1,3 +1,4 @@
+import { t, plural, type LocaleKey } from "../../i18n";
 import { yearOf } from "../../date";
 import { calculateHabitAnalytics } from "../../analytics";
 import { bestDailyStreak, calculateDailyStreak } from "../../evaluation";
@@ -7,8 +8,8 @@ import { isBooleanUnit } from "../../habit-options";
 
 export class StatsWidget implements DashboardWidget {
   id = "stats";
-  name = "Analytics Stats Cards";
-  description = "6-card summary displaying consistency, volume, averages, and streaks.";
+  name = t("widget.stats.name");
+  description = t("widget.stats.description");
 
   async render(container: HTMLElement, ctx: WidgetContext, config?: Record<string, unknown>): Promise<void> {
     container.empty();
@@ -50,45 +51,45 @@ export class StatsWidget implements DashboardWidget {
           : selectedHabit.cadence === "monthly" ? "month"
           : selectedHabit.cadence === "quarterly" ? "quarter"
           : "year";
-        availableCards["consistency"] = { label: `${cadenceLabel(selectedHabit.cadence)} consistency`, value: `${Math.round(analytics.consistencyRate * 100)}%` };
-        availableCards["completed-days"] = { label: "Completed periods", value: `${analytics.completedPeriods ?? 0} / ${analytics.totalPeriods ?? 0}` };
-        availableCards["total-volume"] = { label: "Total volume", value: formatStatValue(analytics.totalVolume, selectedHabit.unit, selectedHabit) };
+        availableCards["consistency"] = { label: `${t("stats.cadenceConsistency", { cadence: cadenceLabel(selectedHabit.cadence) })}`, value: `${Math.round(analytics.consistencyRate * 100)}%` };
+        availableCards["completed-days"] = { label: t("stats.completedPeriods"), value: `${analytics.completedPeriods ?? 0} / ${analytics.totalPeriods ?? 0}` };
+        availableCards["total-volume"] = { label: t("stats.totalVolume"), value: formatStatValue(analytics.totalVolume, selectedHabit.unit, selectedHabit) };
         availableCards["active-average"] = {
-          label: `Avg / ${cadenceUnit}`,
+          label: t("stats.avgPer", { unit: cadenceUnit }),
           value: formatStatValue(analytics.periodAverage ?? 0, selectedHabit.unit, selectedHabit)
         };
-        availableCards["best-streak"] = { label: "Best period peak", value: formatStatValue(analytics.bestPeriodValue ?? 0, selectedHabit.unit, selectedHabit) };
-        availableCards["peak-day"] = { label: "Single-day peak", value: formatStatValue(analytics.peakValue, selectedHabit.unit, selectedHabit) };
+        availableCards["best-streak"] = { label: t("stats.bestPeriodPeak"), value: formatStatValue(analytics.bestPeriodValue ?? 0, selectedHabit.unit, selectedHabit) };
+        availableCards["peak-day"] = { label: t("stats.peakDay"), value: formatStatValue(analytics.peakValue, selectedHabit.unit, selectedHabit) };
       } else {
         const isAvoidance = selectedHabit.type === "avoidance";
         const isTracker = selectedHabit.type === "tracker";
 
         availableCards["consistency"] = {
-          label: isTracker ? "Logging rate" : isAvoidance ? "Clean rate" : "Habit consistency",
+          label: isTracker ? t("stats.loggingRate") : isAvoidance ? t("stats.cleanRate") : t("stats.habitConsistency"),
           value: `${Math.round(analytics.consistencyRate * 100)}%`
         };
         availableCards["completed-days"] = {
-          label: isTracker ? "Days logged" : isAvoidance ? "Clean days" : "Completed days",
+          label: isTracker ? t("stats.daysLogged") : isAvoidance ? t("stats.cleanDays") : t("stats.completedDays"),
           value: isTracker ? `${analytics.activeDays} / ${analytics.totalDays}` : `${analytics.completedDays} / ${analytics.totalDays}`
         };
-        availableCards["partial-days"] = { label: "Partial days", value: String(analytics.partialDays) };
+        availableCards["partial-days"] = { label: t("stats.partialDays"), value: String(analytics.partialDays) };
         availableCards["missed-days"] = {
-          label: isAvoidance ? "Slip days" : "Missed days",
+          label: isAvoidance ? t("stats.slipDays") : t("stats.missedDays"),
           value: isTracker ? "0" : String(analytics.missedDays)
         };
         availableCards["total-volume"] = {
-          label: isAvoidance ? "Total slips" : isTracker ? "Total tracked" : "Total volume",
+          label: isAvoidance ? t("stats.totalSlips") : isTracker ? t("stats.totalTracked") : t("stats.totalVolume"),
           value: formatStatValue(analytics.totalVolume, selectedHabit.unit, selectedHabit)
         };
-        availableCards["active-average"] = { label: "Avg / active day", value: formatStatValue(analytics.averageActiveDays, selectedHabit.unit, selectedHabit) };
-        availableCards["peak-day"] = { label: "Single-day peak", value: formatStatValue(analytics.peakValue, selectedHabit.unit, selectedHabit) };
+        availableCards["active-average"] = { label: t("stats.avgActiveDay"), value: formatStatValue(analytics.averageActiveDays, selectedHabit.unit, selectedHabit) };
+        availableCards["peak-day"] = { label: t("stats.peakDay"), value: formatStatValue(analytics.peakValue, selectedHabit.unit, selectedHabit) };
         availableCards["current-streak"] = {
-          label: isTracker ? "Logging streak" : isAvoidance ? "Clean streak" : "Habit current streak",
-          value: `${analytics.currentStreak} day${analytics.currentStreak === 1 ? "" : "s"}`
+          label: isTracker ? t("stats.loggingStreak") : isAvoidance ? t("stats.cleanStreak") : t("stats.habitCurrentStreak"),
+          value: `${analytics.currentStreak} ${plural(analytics.currentStreak, "plural.dayForms")}`
         };
         availableCards["best-streak"] = {
-          label: isTracker ? "Best logging streak" : isAvoidance ? "Best clean streak" : "Habit best streak",
-          value: `${analytics.bestStreak} day${analytics.bestStreak === 1 ? "" : "s"}`
+          label: isTracker ? t("stats.bestLoggingStreak") : isAvoidance ? t("stats.bestCleanStreak") : t("stats.habitBestStreak"),
+          value: `${analytics.bestStreak} ${plural(analytics.bestStreak, "plural.dayForms")}`
         };
       }
     } else {
@@ -101,25 +102,26 @@ export class StatsWidget implements DashboardWidget {
       const streakResult = calculateDailyStreak(ctx.today, (date) => ctx.evaluations.get(date));
       const bestStreak = bestDailyStreak(ctx.dates.filter((date) => date <= ctx.today), (date) => ctx.evaluations.get(date));
 
-      availableCards["consistency"] = { label: "Daily consistency", value: `${Math.round(average * 100)}%` };
-      availableCards["completed-days"] = { label: "Complete days", value: String(complete) };
-      availableCards["partial-days"] = { label: "Partial days", value: String(partial) };
-      availableCards["missed-days"] = { label: "Missed days", value: String(missed) };
-      availableCards["current-streak"] = { label: streakResult.coversToday ? "Current daily streak" : "Streak before today", value: String(streakResult.streak) };
-      availableCards["best-streak"] = { label: ctx.year === yearOf(ctx.today) ? "Best streak this year" : `Best streak (${ctx.year})`, value: String(bestStreak) };
-      availableCards["total-volume"] = { label: "Days evaluated", value: String(values.length) };
+      availableCards["consistency"] = { label: t("stats.dailyConsistency"), value: `${Math.round(average * 100)}%` };
+      availableCards["completed-days"] = { label: t("stats.completeDays"), value: String(complete) };
+      availableCards["partial-days"] = { label: t("stats.partialDays"), value: String(partial) };
+      availableCards["missed-days"] = { label: t("stats.missedDays"), value: String(missed) };
+      availableCards["current-streak"] = { label: streakResult.coversToday ? t("stats.currentDailyStreak") : t("stats.streakBeforeToday"), value: String(streakResult.streak) };
+      availableCards["best-streak"] = { label: ctx.year === yearOf(ctx.today) ? t("stats.bestStreakThisYear") : t("stats.bestStreakYear", { year: ctx.year }), value: String(bestStreak) };
+      availableCards["total-volume"] = { label: t("stats.daysEvaluated"), value: String(values.length) };
     }
 
     const booleanHabit = selectedHabit && isBooleanUnit(selectedHabit.unit);
     if (booleanHabit) {
+      const periodTag: Record<string, LocaleKey> = { day: "plural.dayForms", week: "analytics.pluralWeek", month: "analytics.pluralMonth", quarter: "analytics.pluralQuarter", year: "analytics.pluralYear" };
       delete availableCards["total-volume"];
       delete availableCards["active-average"];
       delete availableCards["peak-day"];
       const period = selectedHabit.cadence === "daily" ? "day" : selectedHabit.cadence === "weekly" ? "week"
         : selectedHabit.cadence === "monthly" ? "month" : selectedHabit.cadence === "quarterly" ? "quarter" : "year";
       const analytics = ctx.analytics.get(selectedHabit.id) ?? calculateHabitAnalytics(selectedHabit, ctx.dates, ctx.logs, ctx.today);
-      availableCards["current-streak"] = { label: "Current streak", value: `${analytics.currentStreak} ${period}${analytics.currentStreak === 1 ? "" : "s"}` };
-      availableCards["best-streak"] = { label: "Best streak", value: `${analytics.bestStreak} ${period}${analytics.bestStreak === 1 ? "" : "s"}` };
+      availableCards["current-streak"] = { label: t("stats.currentStreak"), value: `${analytics.currentStreak} ${plural(analytics.currentStreak, periodTag[period])}` };
+      availableCards["best-streak"] = { label: t("stats.bestStreak"), value: `${analytics.bestStreak} ${plural(analytics.bestStreak, periodTag[period])}` };
     }
 
     const requested = Array.isArray(config?.cards) ? config.cards : null;

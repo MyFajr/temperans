@@ -1,3 +1,4 @@
+import { t, plural } from "../../i18n";
 import { createSubpageCard } from "../ui";
 import { Notice, Platform, Setting, setIcon } from "obsidian";
 import { PeerSyncComparison, PeerSyncService, PeerSyncTransferResult } from "./service";
@@ -5,10 +6,10 @@ import { PeerSyncAction, PeerSyncPlanItem } from "./protocol";
 import { createPairingUri, generateQrSvg, parsePairingPayload } from "./qr";
 
 function statusLabel(item: PeerSyncPlanItem): string {
-  if (item.status === "same") return "Up to date";
-  if (item.status === "local-only") return "Only here";
-  if (item.status === "remote-only") return "Only on paired device";
-  return "Different versions";
+  if (item.status === "same") return t("peer.status.same");
+  if (item.status === "local-only") return t("peer.status.localOnly");
+  if (item.status === "remote-only") return t("peer.status.remoteOnly");
+  return t("peer.status.different");
 }
 
 export class PeerSyncPanelController {
@@ -56,12 +57,12 @@ export class PeerSyncPanelController {
   }
 
   private async renderHostCard(container: HTMLElement): Promise<void> {
-    const { card: hostCard, header: hostHeader } = createSubpageCard(container, "server", "Desktop host server");
+    const { card: hostCard, header: hostHeader } = createSubpageCard(container, "server", t("peer.hostCard"));
 
     const isHosting = this.service.isHosting;
     hostHeader.createSpan({
       cls: `temperans-badge ${isHosting ? "is-online" : "is-offline"}`,
-      text: isHosting ? "● Host active" : "○ Host stopped"
+      text: isHosting ? t("peer.hostActive") : t("peer.hostStopped")
     });
 
     if (isHosting) {
@@ -82,32 +83,32 @@ export class PeerSyncPanelController {
           // Fallback
         }
         qrBlock.createSpan({
-          text: "Scan with mobile camera to connect automatically",
+          text: t("peer.scanHint"),
           cls: "temperans-scanner-status"
         });
 
         const addressBoxes = hostCard.createDiv({ cls: "temperans-peer-sync-selectable-values" });
-        this.createSelectableValue(addressBoxes, "Desktop address", primaryAddress, "Desktop address");
+        this.createSelectableValue(addressBoxes, t("peer.desktopAddress"), primaryAddress, t("peer.desktopAddress"));
       } else {
         hostCard.createEl("p", {
-          text: `No LAN IPv4 address found. Port ${info.port} is listening.`,
+          text: t("peer.noLan", { port: info.port }),
           cls: "temperans-peer-sync-host-info"
         });
       }
 
       const pairingBox = hostCard.createDiv({ cls: "temperans-peer-sync-selectable-values" });
-      this.createSelectableValue(pairingBox, "Pairing code", code, "Peer-sync pairing code");
+      this.createSelectableValue(pairingBox, t("peer.pairingCode"), code, t("peer.pairingCodeAria"));
 
       new Setting(hostCard)
-        .addButton((button) => button.setButtonText("Stop host").onClick(async () => {
+        .addButton((button) => button.setButtonText(t("peer.stopHost")).onClick(async () => {
           await this.service.stopHost();
           this.comparison = null;
           await this.render();
           this.onRefresh?.();
         }))
-        .addButton((button) => button.setButtonText("Regenerate code").setDestructive().onClick(async () => {
+        .addButton((button) => button.setButtonText(t("peer.regenerateCode")).setDestructive().onClick(async () => {
           await this.service.regenerateHostPairingCode();
-          new Notice("Pairing code regenerated. Existing clients must enter the new code.");
+          new Notice(t("notice.peer.regenerated"));
           await this.render();
         }));
       return;
@@ -115,15 +116,15 @@ export class PeerSyncPanelController {
 
     let port = String(this.service.activeHostInfo?.port ?? this.service.configuredPort);
     new Setting(hostCard)
-      .setName("Local host port")
-      .setDesc("Port number for incoming connections (default: 43887).")
+      .setName(t("peer.localPort"))
+      .setDesc(t("peer.localPortDesc"))
       .addText((input) => {
         input.setValue(port).onChange((value) => { port = value; });
         input.inputEl.type = "number";
         input.inputEl.min = "1024";
         input.inputEl.max = "65535";
       })
-      .addButton((button) => button.setButtonText("Start host").onClick(async () => {
+      .addButton((button) => button.setButtonText(t("peer.startHost")).onClick(async () => {
         const parsedPort = Number(port);
         try {
           await this.service.setHostPort(parsedPort);
@@ -131,43 +132,43 @@ export class PeerSyncPanelController {
           await this.render();
           this.onRefresh?.();
         } catch (error) {
-          new Notice(error instanceof Error ? error.message : "Could not start peer-sync host.");
+          new Notice(error instanceof Error ? error.message : t("error.peer.startHost"));
         }
       }))
-      .addButton((button) => button.setButtonText("Regenerate pairing code").setDestructive().onClick(async () => {
+      .addButton((button) => button.setButtonText(t("peer.regeneratePairingCode")).setDestructive().onClick(async () => {
         await this.service.regenerateHostPairingCode();
-        new Notice("Pairing code regenerated. Start the host to display it, and update any paired clients.");
+        new Notice(t("notice.peer.regenerated2"));
       }));
   }
 
   private async renderConnectedHeader(container: HTMLElement): Promise<void> {
     const profile = await this.service.getRemoteProfile();
-    const { card, header } = createSubpageCard(container, "smartphone", "Paired desktop connection");
+    const { card, header } = createSubpageCard(container, "smartphone", t("peer.pairedHeader"));
 
     header.createSpan({
       cls: "temperans-badge is-online",
-      text: "● Connected"
+      text: t("peer.connected")
     });
 
     const infoRow = card.createDiv({ cls: "temperans-card-actions-row" });
     infoRow.createSpan({
-      text: profile.url ? `Connected to ${profile.url}` : "Connected to paired desktop",
+      text: profile.url ? t("peer.connectedTo", { url: profile.url }) : t("peer.connectedDesktop"),
       cls: "temperans-task-title"
     });
 
-    const refreshBtn = infoRow.createEl("button", { text: "Refresh", attr: { type: "button" } });
+    const refreshBtn = infoRow.createEl("button", { text: t("peer.refresh"), attr: { type: "button" } });
     refreshBtn.onclick = async () => {
       refreshBtn.disabled = true;
-      refreshBtn.setText("Checking…");
+      refreshBtn.setText(t("peer.checking"));
       try {
         await this.refreshComparison();
       } finally {
         refreshBtn.disabled = false;
-        refreshBtn.setText("Refresh");
+        refreshBtn.setText(t("peer.refresh"));
       }
     };
 
-    const disconnectBtn = infoRow.createEl("button", { text: "Change connection", attr: { type: "button" } });
+    const disconnectBtn = infoRow.createEl("button", { text: t("peer.changeConnection"), attr: { type: "button" } });
     disconnectBtn.onclick = async () => {
       this.comparison = null;
       await this.render();
@@ -175,21 +176,21 @@ export class PeerSyncPanelController {
   }
 
   private async renderClientConnectionCard(container: HTMLElement): Promise<void> {
-    const { card: clientCard } = createSubpageCard(container, "smartphone", "Client connection");
+    const { card: clientCard } = createSubpageCard(container, "smartphone", t("peer.clientCard"));
     const profile = await this.service.getRemoteProfile();
     let currentInput = profile.url && profile.secret ? `${profile.url}#${profile.secret}` : (profile.url || "");
     const isPaired = Boolean(profile.url && profile.secret);
 
     const connectionSetting = new Setting(clientCard)
-      .setName("Connection detail")
+      .setName(t("peer.connectionDetail"))
       .setDesc(isPaired
-        ? `Saved desktop: ${profile.url}. Tap Connect to sync with this session, or enter a new link below.`
-        : "Paste or enter pairing link (http://192.168.1.20:43887#CODE) or tap paste.");
+        ? t("peer.savedDesktop", { url: profile.url })
+        : t("peer.pasteDesc"));
 
     let textInputEl: HTMLInputElement | null = null;
     connectionSetting.addText((input) => {
       textInputEl = input.inputEl;
-      input.setPlaceholder("http://192.168.1.20:43887#CODE or paste link");
+      input.setPlaceholder(t("ph.peer.link"));
       input.setValue(currentInput);
       input.onChange((value) => {
         currentInput = value.trim();
@@ -211,22 +212,22 @@ export class PeerSyncPanelController {
         const text = await navigator.clipboard.readText();
         const parsed = parsePairingPayload(text);
         if (!parsed) {
-          new Notice("Clipboard does not contain a valid pairing address or code.");
+          new Notice(t("notice.peer.clipboardInvalid"));
           return;
         }
         currentInput = `${parsed.url}#${parsed.secret}`;
         if (textInputEl) textInputEl.value = currentInput;
         await this.service.saveRemoteProfile(parsed.url, parsed.secret);
-        new Notice("Configured desktop connection from clipboard!");
+        new Notice(t("notice.peer.clipboardConfigured"));
         await connectAndCompare();
       } catch (error) {
-        new Notice(error instanceof Error ? error.message : "Could not read clipboard.");
+        new Notice(error instanceof Error ? error.message : t("error.peer.clipboardRead"));
       }
     };
 
     connectionSetting.addExtraButton((button) => {
       button.setIcon("clipboard-paste");
-      button.setTooltip("Paste connection details from clipboard");
+      button.setTooltip(t("peer.pasteTooltip"));
       button.onClick(() => { void pasteConnectionDetails(); });
     });
 
@@ -234,7 +235,7 @@ export class PeerSyncPanelController {
     const connectAndCompare = async () => {
       if (connectBtn) {
         connectBtn.disabled = true;
-        connectBtn.setText("Connecting…");
+        connectBtn.setText(t("peer.connecting"));
       }
       try {
         const parsed = parsePairingPayload(currentInput);
@@ -243,7 +244,7 @@ export class PeerSyncPanelController {
         } else {
           const active = await this.service.getRemoteProfile();
           if (!active.url || !active.secret) {
-            new Notice("Enter or paste a valid desktop address and pairing code first.");
+            new Notice(t("notice.peer.enterAddress"));
             return;
           }
         }
@@ -252,27 +253,27 @@ export class PeerSyncPanelController {
         this.resetTransferSelection(this.comparison);
         await this.render();
       } catch (error) {
-        new Notice(error instanceof Error ? error.message : "Could not connect to desktop host.");
+        new Notice(error instanceof Error ? error.message : t("error.peer.connect"));
       } finally {
         if (connectBtn) {
           connectBtn.disabled = false;
-          connectBtn.setText("Connect");
+          connectBtn.setText(t("peer.connect"));
         }
       }
     };
 
     const clientActions = clientCard.createDiv({ cls: "temperans-card-actions-row" });
-    const connectButtonEl = clientActions.createEl("button", { text: "Connect", attr: { type: "button" } });
+    const connectButtonEl = clientActions.createEl("button", { text: t("peer.connect"), attr: { type: "button" } });
     connectBtn = connectButtonEl;
     connectButtonEl.onclick = connectAndCompare;
 
-    const forgetBtn = clientActions.createEl("button", { text: "Forget paired device", cls: "mod-warning", attr: { type: "button" } });
+    const forgetBtn = clientActions.createEl("button", { text: t("peer.forget"), cls: "mod-warning", attr: { type: "button" } });
     forgetBtn.onclick = async () => {
       await this.service.forgetRemoteProfile();
       currentInput = "";
       if (textInputEl) textInputEl.value = "";
       this.comparison = null;
-      new Notice("Paired device forgotten.");
+      new Notice(t("notice.peer.forgotten"));
       await this.render();
     };
   }
@@ -282,27 +283,27 @@ export class PeerSyncPanelController {
     if (!comparison) return;
     const changedItems = comparison.plan.filter((item) => item.status !== "same");
 
-    const { card, header: heading } = createSubpageCard(container, "files", "Transfer preview");
+    const { card, header: heading } = createSubpageCard(container, "files", t("peer.preview"));
     card.addClass("temperans-peer-sync-preview");
 
     const refresh = heading.createEl("button", {
       cls: "temperans-peer-sync-preview-refresh",
-      attr: { type: "button", "aria-label": "Refresh transfer preview", "aria-description": "Compare the current files again" }
+      attr: { type: "button", "aria-label": t("peer.refreshPreviewAria"), "aria-description": t("peer.refreshPreviewDesc") }
     });
     setIcon(refresh, "rotate-cw");
-    refresh.setAttribute("title", "Refresh preview");
+    refresh.setAttribute("title", t("peer.refreshPreviewTitle"));
     refresh.onclick = () => void this.refreshComparison();
 
     if (!changedItems.length) {
       const empty = card.createDiv({ cls: "temperans-peer-sync-empty" });
       setIcon(empty.createSpan({ cls: "temperans-peer-sync-empty-icon" }), "circle-check");
-      empty.createEl("strong", { text: "All caught up" });
-      empty.createSpan({ text: "Your habit files match on both devices." });
+      empty.createEl("strong", { text: t("peer.allCaughtUp") });
+      empty.createSpan({ text: t("peer.filesMatch") });
       return;
     }
 
     const summary = card.createDiv({ cls: "temperans-peer-sync-summary" });
-    for (const [status, label] of [["local-only", "Only here"], ["remote-only", "Only paired"], ["different", "Different"]]) {
+    for (const [status, label] of [["local-only", t("peer.status.localOnly")], ["remote-only", t("peer.onlyPaired")], ["different", t("peer.diffShort")]]) {
       const stat = summary.createDiv({ cls: `temperans-peer-sync-stat is-${status}` });
       stat.createEl("strong", { text: String(changedItems.filter(item => item.status === status).length) });
       stat.createSpan({ text: label });
@@ -318,7 +319,7 @@ export class PeerSyncPanelController {
     // 2. Scrollable File List
     const scrollList = syncContainer.createDiv({
       cls: "temperans-peer-sync-scroll-list",
-      attr: { role: "region", "aria-label": "Differing habit files", tabindex: "0" }
+      attr: { role: "region", "aria-label": t("peer.differingAria"), tabindex: "0" }
     });
     for (const item of changedItems) {
       this.renderFileRow(scrollList, item);
@@ -338,13 +339,13 @@ export class PeerSyncPanelController {
         this.selectedPaths.has(item.path) ? (this.actions.get(item.path) ?? item.defaultAction) : "skip"
       ]));
       transferBtn.disabled = true;
-      transferBtn.setText("Transferring…");
+      transferBtn.setText(t("peer.transferring"));
       try {
         const results = await this.service.transfer(comparison.plan, selectedActions);
-        this.results = results.length ? results : [{ path: "", action: "skip", ok: true, message: "No files were selected." }];
+        this.results = results.length ? results : [{ path: "", action: "skip", ok: true, message: t("notice.peer.nothingSelected") }];
         await this.refreshComparison({ preserveResults: true });
       } catch (error) {
-        new Notice(error instanceof Error ? error.message : "Could not transfer files.");
+        new Notice(error instanceof Error ? error.message : t("error.peer.transfer"));
       } finally {
         this.updateTransferUI();
       }
@@ -359,11 +360,11 @@ export class PeerSyncPanelController {
     const selectGroup = toolbar.createDiv({ cls: "temperans-peer-sync-select-group" });
     const selectAllLabel = selectGroup.createEl("label", { cls: "temperans-peer-sync-select-all" });
     const selectAll = selectAllLabel.createEl("input", {
-      attr: { type: "checkbox", "aria-label": "Select or clear all differing files" }
+      attr: { type: "checkbox", "aria-label": t("peer.selectAllAria") }
     });
     this.selectAllInput = selectAll;
 
-    selectAllLabel.createSpan({ text: "Select all" });
+    selectAllLabel.createSpan({ text: t("peer.selectAll") });
     this.selectionCountEl = selectGroup.createSpan({ cls: "temperans-peer-sync-selection-count" });
 
     selectAll.onchange = () => {
@@ -387,8 +388,8 @@ export class PeerSyncPanelController {
 
     const sendAllBtn = batchButtons.createEl("button", {
       cls: "temperans-peer-sync-direction-btn",
-      text: "↑ Send selected",
-      attr: { type: "button", title: "Set all selected files to send to desktop" }
+      text: t("peer.sendSelected"),
+      attr: { type: "button", title: t("peer.sendSelectedTitle") }
     });
     sendAllBtn.onclick = () => {
       let count = 0;
@@ -398,16 +399,16 @@ export class PeerSyncPanelController {
           count += 1;
         }
       }
-      if (count > 0) new Notice(`Set ${count} file${count === 1 ? "" : "s"} to send to desktop.`);
-      else new Notice("None of the selected files exist on this device to send.");
+      if (count > 0) new Notice(t("notice.peer.setSend", { n: count, form: plural(count, "peer.pluralFile") }));
+      else new Notice(t("notice.peer.noSend"));
       this.refreshRowViews();
       this.updateTransferUI(items);
     };
 
     const receiveAllBtn = batchButtons.createEl("button", {
       cls: "temperans-peer-sync-direction-btn",
-      text: "↓ Receive selected",
-      attr: { type: "button", title: "Set all selected files to receive from desktop" }
+      text: t("peer.receiveSelected"),
+      attr: { type: "button", title: t("peer.receiveSelectedTitle") }
     });
     receiveAllBtn.onclick = () => {
       let count = 0;
@@ -417,8 +418,8 @@ export class PeerSyncPanelController {
           count += 1;
         }
       }
-      if (count > 0) new Notice(`Set ${count} file${count === 1 ? "" : "s"} to receive from desktop.`);
-      else new Notice("None of the selected files exist on the desktop to receive.");
+      if (count > 0) new Notice(t("notice.peer.setReceive", { n: count, form: plural(count, "peer.pluralFile") }));
+      else new Notice(t("notice.peer.noReceive"));
       this.refreshRowViews();
       this.updateTransferUI(items);
     };
@@ -430,13 +431,13 @@ export class PeerSyncPanelController {
     // Left: Checkbox + File Info
     const left = row.createDiv({ cls: "temperans-peer-sync-row-left" });
     const checkbox = left.createEl("input", {
-      attr: { type: "checkbox", "aria-label": `Select ${item.path}` }
+      attr: { type: "checkbox", "aria-label": t("peer.selectFile", { path: item.path }) }
     });
 
     setIcon(left.createSpan({ cls: "temperans-peer-sync-file-icon" }), item.path === "Settings.md" ? "settings-2" : "file-text");
     const info = left.createDiv({ cls: "temperans-peer-sync-row-info" });
     const filename = item.path.split("/").pop()!;
-    info.createSpan({ text: filename === "Settings.md" ? "Habit settings" : filename.replace(/\.md$/, ""), cls: "temperans-peer-sync-row-name" });
+    info.createSpan({ text: filename === "Settings.md" ? t("peer.habitSettings") : filename.replace(/\.md$/, ""), cls: "temperans-peer-sync-row-name" });
     info.createSpan({ text: item.path, cls: "temperans-peer-sync-row-path", attr: { title: item.path } });
     info.createSpan({ text: statusLabel(item), cls: `temperans-peer-sync-row-status is-${item.status}` });
 
@@ -448,8 +449,8 @@ export class PeerSyncPanelController {
     if (item.local) {
       uploadBtn = actionsContainer.createEl("button", {
         cls: "temperans-peer-sync-direction-btn",
-        text: "↑ Send",
-        attr: { type: "button", title: "Send this file to paired device", "aria-label": `Send ${item.path}`, "aria-pressed": "false" }
+        text: t("peer.send"),
+        attr: { type: "button", title: t("peer.sendTitle"), "aria-label": t("peer.sendAria", { path: item.path }), "aria-pressed": "false" }
       });
       uploadBtn.onclick = () => {
         this.selectedPaths.add(item.path);
@@ -462,8 +463,8 @@ export class PeerSyncPanelController {
     if (item.remote) {
       downloadBtn = actionsContainer.createEl("button", {
         cls: "temperans-peer-sync-direction-btn",
-        text: "↓ Receive",
-        attr: { type: "button", title: "Receive this file from paired device", "aria-label": `Receive ${item.path}`, "aria-pressed": "false" }
+        text: t("peer.receive"),
+        attr: { type: "button", title: t("peer.receiveTitle"), "aria-label": t("peer.receiveAria", { path: item.path }), "aria-pressed": "false" }
       });
       downloadBtn.onclick = () => {
         this.selectedPaths.add(item.path);
@@ -523,7 +524,7 @@ export class PeerSyncPanelController {
     }
 
     if (this.selectionCountEl) {
-      this.selectionCountEl.setText(`${totalSelected} of ${this.selectablePathCount} selected`);
+      this.selectionCountEl.setText(t("peer.selectionCount", { n: totalSelected, total: this.selectablePathCount }));
     }
 
     if (this.selectAllInput) {
@@ -533,15 +534,15 @@ export class PeerSyncPanelController {
 
     if (this.transferSummaryEl) {
       this.transferSummaryEl.setText(totalSelected
-        ? `${uploadCount} sending · ${downloadCount} receiving` : "Choose files to sync");
+        ? t("peer.summaryCounts", { up: uploadCount, down: downloadCount }) : t("peer.summaryEmpty"));
     }
 
     if (this.transferButton) {
       this.transferButton.disabled = totalSelected === 0;
       if (totalSelected === 0) {
-        this.transferButton.setText("Select files to transfer");
+        this.transferButton.setText(t("peer.selectToTransfer"));
       } else {
-        this.transferButton.setText(`Transfer ${totalSelected} file${totalSelected === 1 ? "" : "s"}`);
+        this.transferButton.setText(t("peer.transferN", { n: totalSelected, form: plural(totalSelected, "peer.pluralFile") }));
       }
     }
   }
@@ -559,7 +560,7 @@ export class PeerSyncPanelController {
       if (!options.preserveResults) this.results = [];
       await this.render();
     } catch (error) {
-      new Notice(error instanceof Error ? error.message : "Could not refresh the peer-sync preview.");
+      new Notice(error instanceof Error ? error.message : t("error.peer.refreshPreview"));
     }
   }
 
@@ -571,7 +572,7 @@ export class PeerSyncPanelController {
   }
 
   private renderResults(container: HTMLElement): void {
-    const { card } = createSubpageCard(container, "list-checks", "Transfer results");
+    const { card } = createSubpageCard(container, "list-checks", t("peer.results"));
     const list = card.createDiv({ cls: "temperans-peer-sync-results", attr: { "aria-live": "polite" } });
     for (const result of this.results) {
       const row = list.createDiv({ cls: result.ok ? "is-success" : "is-error" });
@@ -602,7 +603,7 @@ export async function renderPeerSyncSettings(
   onRefresh?: () => void
 ): Promise<void> {
   if (!service) {
-    container.createEl("p", { text: "Peer sync service is unavailable." });
+    container.createEl("p", { text: t("peer.serviceUnavailable") });
     return;
   }
   const controller = new PeerSyncPanelController(container, service, onRefresh);

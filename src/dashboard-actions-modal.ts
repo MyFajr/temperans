@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { ActionCard, renderActionCard, renderSubpageHeader } from "./ui";
 import { loadAnalyticsSummaryData, renderAnalyticsPanel } from "./analytics-panel";
 import { renderAnalyticsShareActions } from "./analytics-share";
@@ -68,7 +69,7 @@ export class DashboardActionsModal extends Modal {
   }
 
   private renderSubpageHeader(container: HTMLElement, title: string, subtitle?: string): HTMLDivElement {
-    return renderSubpageHeader(container, title, subtitle, "Back to actions", () => {
+    return renderSubpageHeader(container, title, subtitle, t("nav.backToActions"), () => {
       this.currentView = "menu";
       this.render();
     });
@@ -76,15 +77,15 @@ export class DashboardActionsModal extends Modal {
 
   private renderMenu(container: HTMLElement): void {
     const header = container.createDiv({ cls: "temperans-actions-header" });
-    header.createEl("h2", { text: "Habit actions" });
-    header.createEl("p", { text: "Quick actions for synchronization, habits, analytics, and vault notes." });
+    header.createEl("h2", { text: t("header.habitActions") });
+    header.createEl("p", { text: t("desc.quickActions") });
 
     // Category 1: Sync and Integrations
-    this.renderSection(container, "Sync and integrations", [
+    this.renderSection(container, t("actions.sectionSync"), [
       {
         icon: "wifi",
-        title: "Local peer sync",
-        description: "Compare and transfer Habit Logs securely with your paired desktop.",
+        title: t("settings.localPeerSync"),
+        description: t("actions.peerSyncCard"),
         onClick: () => {
           this.currentView = "peer-sync";
           this.render();
@@ -92,8 +93,8 @@ export class DashboardActionsModal extends Modal {
       },
       {
         icon: "cloud-download",
-        title: "Sync automated endpoints",
-        description: "Fetch the past 7 days from all external REST APIs configured in Settings.md.",
+        title: t("actions.syncEndpointsTitle"),
+        description: t("actions.syncEndpointsDesc"),
         onClick: async () => {
           this.close();
           await this.host.syncAllEndpoints();
@@ -101,10 +102,10 @@ export class DashboardActionsModal extends Modal {
       },
       {
         icon: "heart-pulse",
-        title: "Import companion data",
-        description: "Import health metrics and habit sessions from the companion’s JSON or CSV export.",
+        title: t("settings.companionImport"),
+        description: t("desc.companionImportDesc"),
         actionButton: {
-          label: "Import data",
+          label: t("actions.importData"),
           icon: "download",
           onClick: async () => {
             try {
@@ -113,7 +114,7 @@ export class DashboardActionsModal extends Modal {
                 await this.onTasksChanged();
               }
             } catch (error) {
-              new Notice(error instanceof Error ? error.message : "Could not import companion data.");
+              new Notice(error instanceof Error ? error.message : t("error.couldNotImportCompanion"));
             }
           }
         },
@@ -125,11 +126,11 @@ export class DashboardActionsModal extends Modal {
     ]);
 
     // Category 2: Habits and Insights
-    this.renderSection(container, "Habits and insights", [
+    this.renderSection(container, t("actions.sectionHabits"), [
       {
         icon: "bar-chart-2",
-        title: "Analytics summary",
-        description: "Review consistency rates, streaks, total volume, and averages across tasks.",
+        title: t("actions.analyticsTitle"),
+        description: t("actions.analyticsDesc"),
         onClick: () => {
           this.currentView = "analytics";
           this.render();
@@ -137,8 +138,8 @@ export class DashboardActionsModal extends Modal {
       },
       {
         icon: "list-ordered",
-        title: "Configure habits",
-        description: "Reorder, edit, sort, and manage your habit list.",
+        title: t("settings.configureHabits"),
+        description: t("actions.configureHabitsDesc"),
         onClick: () => {
           this.currentView = "configure-habits";
           this.render();
@@ -146,8 +147,8 @@ export class DashboardActionsModal extends Modal {
       },
       {
         icon: "plus-circle",
-        title: "Add a habit",
-        description: "Create a build habit, negative/avoidance habit, or zero-goal tracker.",
+        title: t("settings.addHabit"),
+        description: t("actions.addHabitDesc"),
         onClick: () => {
           this.previousHabitView = "menu";
           this.selectedPreset = undefined;
@@ -158,11 +159,11 @@ export class DashboardActionsModal extends Modal {
     ]);
 
     // Category 3: Vault Configuration
-    this.renderSection(container, "Vault configuration", [
+    this.renderSection(container, t("actions.sectionVault"), [
       {
         icon: "file-text",
-        title: "Edit Settings.md",
-        description: "Directly customize habit schedules, targets, and historical target revisions.",
+        title: t("settings.editSettingsNote"),
+        description: t("actions.editSettingsDesc"),
         onClick: async () => {
           this.close();
           await this.host.openSettingsNote();
@@ -170,8 +171,8 @@ export class DashboardActionsModal extends Modal {
       },
       {
         icon: "layout-dashboard",
-        title: "Edit Dashboard.md",
-        description: "Reorder widgets, adjust cards, and configure views in declarative YAML.",
+        title: t("settings.editDashboardNote"),
+        description: t("desc.yamlDashboard"),
         onClick: async () => {
           this.close();
           await this.host.openDashboardConfig();
@@ -204,8 +205,8 @@ export class DashboardActionsModal extends Modal {
   private renderSyncHub(container: HTMLElement): void {
     this.renderSubpageHeader(
       container,
-      "Companion data import",
-      "Import health metrics and habit sessions from a JSON or CSV companion export."
+      t("settings.companionImport"),
+      t("actions.importCompanionShort")
     );
 
     renderHealthConnectPanel(container, async (weekEnding) => this.host.importHealthConnect?.(weekEnding), this.onTasksChanged, this.host.healthConnectPathControl?.());
@@ -215,8 +216,8 @@ export class DashboardActionsModal extends Modal {
     const year = new Date().getFullYear();
     const header = this.renderSubpageHeader(
       container,
-      `Habit analytics — ${year}`,
-      "Comprehensive consistency rates, volume, averages, and streaks across all enabled habits."
+      t("header.analyticsYear", { year }),
+      t("actions.analyticsSub")
     );
 
     const summary = await loadAnalyticsSummaryData(this.host.store, year);
@@ -229,7 +230,7 @@ export class DashboardActionsModal extends Modal {
       container,
       "Add a habit",
       "Configure a positive build habit, negative/avoidance habit, or zero-goal metric tracker.",
-      this.previousHabitView === "configure-habits" ? "Back to habits" : "Back to actions",
+      this.previousHabitView === "configure-habits" ? t("nav.backToHabits") : t("nav.backToActions"),
       () => {
         this.currentView = this.previousHabitView;
         this.render();
@@ -253,8 +254,8 @@ export class DashboardActionsModal extends Modal {
   private async renderConfigureHabits(container: HTMLElement): Promise<void> {
     this.renderSubpageHeader(
       container,
-      "Configure habits",
-      "Drag cards using the left grip or use the arrows to reorder. Tap the pencil to edit or trash to delete."
+      t("settings.configureHabits"),
+      t("actions.configureSub")
     );
 
     await renderHabitsConfiguration(container, {
@@ -276,9 +277,9 @@ export class DashboardActionsModal extends Modal {
   private async renderPresets(container: HTMLElement): Promise<void> {
     renderSubpageHeader(
       container,
-      "Browse presets",
-      "Select from pre-configured Health Connect metrics and connected APIs.",
-      "Back to add habit",
+      t("habit.browsePresets"),
+      t("presets.browseDescShort"),
+      t("nav.backToAddHabit"),
       () => {
         this.currentView = "add-habit";
         this.render();

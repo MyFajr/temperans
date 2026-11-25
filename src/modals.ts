@@ -42,25 +42,25 @@ export class HabitLogModal extends Modal {
   private stopFollowingViewport?: () => void;
 
   private reportSaveError(error: unknown): void {
-    this.setSaveStatus("Not saved — retry Finish");
-    new Notice(error instanceof Error ? error.message : "Could not save this habit. Your draft is still open.");
+    this.setSaveStatus(t("log.notSavedRetry"));
+    new Notice(error instanceof Error ? error.message : t("error.couldNotSaveDraft"));
   }
   private setSaveStatus(value: string): void {
     this.saveStatus = value;
     if (this.saveStatusEl) {
       this.saveStatusEl.empty();
       this.saveStatusEl.setAttribute("title", value);
-      this.saveStatusEl.toggleClass("is-error", value.startsWith("Not saved"));
+      this.saveStatusEl.toggleClass("is-error", value.startsWith(t("log.notSavedPrefix")));
       if (value) {
         const icon = this.saveStatusEl.createSpan({ attr: { "aria-hidden": "true" } });
-        setIcon(icon, value === "Saved" ? "check-check" : value === "Saving…" ? "save" : "circle-alert");
+        setIcon(icon, value === t("log.saved") ? "check-check" : value === t("log.saving") ? "save" : "circle-alert");
         this.saveStatusEl.createSpan({ cls: "temperans-visually-hidden", text: value });
       }
     }
   }
   private queueSave(id: string, save: () => Promise<unknown>, delay = 800): void {
     this.pendingSaves.set(id, save);
-    this.setSaveStatus("Saving…");
+    this.setSaveStatus(t("log.saving"));
     if (this.saveTimer) this.contentEl.ownerDocument.defaultView?.clearTimeout(this.saveTimer);
     this.saveTimer = this.contentEl.ownerDocument.defaultView?.setTimeout(() => { void this.flushSaves().catch(error => this.reportSaveError(error)); }, delay);
   }
@@ -73,7 +73,7 @@ export class HabitLogModal extends Modal {
         await save();
         if (this.pendingSaves.get(id) === save) this.pendingSaves.delete(id);
       }
-      this.setSaveStatus("Saved");
+      this.setSaveStatus(t("log.saved"));
     });
   }
   close(): void { void this.finish(); }
@@ -199,7 +199,7 @@ export class HabitLogModal extends Modal {
         const values = [pageValue, chapterValue, minuteValue, repValue, countValue];
         const hasNumericValue = values.some((v) => v !== undefined) && values.every((v) => v === undefined || Number.isFinite(v) && v >= 0);
 
-        if (!hasNumericValue && Object.values(draft).some(value => value.trim())) throw new Error("Enter a valid session amount before saving.");
+        if (!hasNumericValue && Object.values(draft).some(value => value.trim())) throw new Error(t("error.enterSessionAmount"));
         if (hasNumericValue) {
           const title = draft.title.trim() || habit.name;
           await this.store.addSession(this.date, habit.id, {
@@ -230,7 +230,7 @@ export class HabitLogModal extends Modal {
       if (draft && draft.dirty) {
         const durSec = draft.duration.trim() ? parseTypingDuration(draft.duration) : 0;
         const testCount = draft.tests.trim() ? Number(draft.tests) : 0;
-        if (durSec === null || !Number.isInteger(testCount) || testCount < 0) throw new Error("Enter a valid duration and whole-number test count.");
+        if (durSec === null || !Number.isInteger(testCount) || testCount < 0) throw new Error(t("error.enterDurationTests"));
         await this.store.recordManualTyping(this.date, durSec, testCount, draft.note);
         draft.dirty = false;
       }
@@ -241,7 +241,7 @@ export class HabitLogModal extends Modal {
       const draft = this.durationDrafts.get(habit.id);
       if (draft && draft.dirty) {
         const minutes = draft.duration.trim() ? parseSleepDuration(draft.duration) : 0;
-        if (minutes === null) throw new Error("Enter a valid duration before saving.");
+        if (minutes === null) throw new Error(t("error.enterDuration"));
         await this.store.recordMetric(this.date, habit.id, minutes, draft.note);
         draft.dirty = false;
       }
@@ -253,7 +253,7 @@ export class HabitLogModal extends Modal {
     if (draft && draft.dirty) {
       const amountStr = draft.amount.trim();
       const value = amountStr ? parseHabitAmount(amountStr, habit) : 0;
-      if (value === null) throw new Error("Enter a valid amount before saving.");
+      if (value === null) throw new Error(t("error.enterAmount"));
       await this.store.recordMetric(this.date, habit.id, value, draft.note);
       draft.dirty = false;
     }
@@ -332,30 +332,30 @@ export class HabitLogModal extends Modal {
       const maxLimit = isBooleanUnit(habit.unit) ? 0 : target?.max ?? 0;
       if (currentValue <= maxLimit) {
         statusBadge.addClass("is-success");
-        statusBadge.setText("✓ Clean Day");
+        statusBadge.setText(t("dashboard.cleanDay"));
       } else {
         statusBadge.addClass("is-error");
-        statusBadge.setText(`⚠ Slipped (+${currentValue - maxLimit})`);
+        statusBadge.setText(t("dashboard.slipped", { n: currentValue - maxLimit }));
       }
     } else if (habit.type === "tracker") {
       if (currentValue > 0) {
         statusBadge.addClass("is-success");
-        statusBadge.setText("✓ Logged");
+        statusBadge.setText(t("dashboard.logged"));
       } else {
         statusBadge.addClass("is-idle");
-        statusBadge.setText("Not logged");
+        statusBadge.setText(t("dashboard.notLogged"));
       }
     } else {
       const goal = calculateGoalProgress(currentValue, target, habit);
       if (goal.progress >= 1.0) {
         statusBadge.addClass("is-success");
-        statusBadge.setText("✓ Goal Met");
+        statusBadge.setText(t("dashboard.goalMet"));
       } else if (goal.progress > 0) {
         statusBadge.addClass("is-progress");
-        statusBadge.setText(`${Math.round(goal.progress * 100)}% Done`);
+        statusBadge.setText(t("dashboard.percentDone", { p: Math.round(goal.progress * 100) }));
       } else {
         statusBadge.addClass("is-idle");
-        statusBadge.setText("Pending");
+        statusBadge.setText(t("log.pending"));
       }
     }
   }
@@ -369,7 +369,7 @@ export class HabitLogModal extends Modal {
 
     const expandBtn = header.createEl("button", {
       cls: "temperans-edit-day",
-      attr: { type: "button", "aria-label": "Edit / log habits" }
+      attr: { type: "button", "aria-label": t("aria.editLogHabits") }
     });
     setIcon(expandBtn, "square-pen");
 
@@ -407,30 +407,30 @@ export class HabitLogModal extends Modal {
         const maxLimit = isBooleanUnit(habit.unit) ? 0 : target?.max ?? 0;
         if (val <= maxLimit) {
           badge.addClass("is-success");
-          badge.setText("✓ Clean Day");
+          badge.setText(t("dashboard.cleanDay"));
         } else {
           badge.addClass("is-error");
-          badge.setText(`⚠ Slipped (+${val - maxLimit})`);
+          badge.setText(t("dashboard.slipped", { n: val - maxLimit }));
         }
       } else if (habit.type === "tracker") {
         if (val > 0) {
           badge.addClass("is-success");
-          badge.setText("✓ Logged");
+          badge.setText(t("dashboard.logged"));
         } else {
           badge.addClass("is-idle");
-          badge.setText("Not logged");
+          badge.setText(t("dashboard.notLogged"));
         }
       } else {
         const goal = calculateGoalProgress(val, target, habit);
         if (goal.progress >= 1.0) {
           badge.addClass("is-success");
-          badge.setText("✓ Goal Met");
+          badge.setText(t("dashboard.goalMet"));
         } else if (goal.progress > 0) {
           badge.addClass("is-progress");
-          badge.setText(`${Math.round(goal.progress * 100)}% Done`);
+          badge.setText(t("dashboard.percentDone", { p: Math.round(goal.progress * 100) }));
         } else {
           badge.addClass("is-idle");
-          badge.setText("Pending");
+          badge.setText(t("log.pending"));
         }
       }
     }
@@ -451,7 +451,7 @@ export class HabitLogModal extends Modal {
       return;
     }
 
-    const defaultHeading = this.habits.length === 1 ? `Log ${this.habits[0].name}` : "Log habits";
+    const defaultHeading = this.habits.length === 1 ? t("header.logHabit", { name: this.habits[0].name }) : t("header.logHabits");
     const modalHeader = contentEl.createDiv({ cls: "temperans-log-modal-header" });
     const hideSingleHabitHeading = this.isEmbedded && this.habits.length === 1 && !this.customTitle;
     if (!hideSingleHabitHeading) modalHeader.createEl("h2", { text: this.customTitle || defaultHeading });
@@ -459,7 +459,7 @@ export class HabitLogModal extends Modal {
     datePill.setText(`📅 ${formatDate(this.date)}`);
 
     if (!this.habits.length) {
-      contentEl.createEl("p", { text: "Enable a habit in Habit Logs/Settings.md first." });
+      contentEl.createEl("p", { text: t("notice.enableHabitFirst") });
       return;
     }
 
@@ -472,7 +472,7 @@ export class HabitLogModal extends Modal {
       // Previous button with sleek Lucide chevron-left
       const prevBtn = stepperContainer.createEl("button", {
         cls: "temperans-stepper-nav-btn",
-        attr: { type: "button", "aria-label": "Previous habit" }
+        attr: { type: "button", "aria-label": t("aria.previousHabit") }
       });
       setIcon(prevBtn, "chevron-left");
       prevBtn.disabled = this.currentIndex === 0;
@@ -483,9 +483,9 @@ export class HabitLogModal extends Modal {
         value: currentHabit.id,
         options: this.habits.map((h, i) => ({
           value: h.id,
-          label: `${h.name} (${i + 1} of ${this.habits.length})`
+          label: t("header.habitOf", { name: h.name, i: i + 1, n: this.habits.length })
         })),
-        ariaLabel: "Switch habit",
+        ariaLabel: t("aria.switchHabit"),
         onChange: (val) => void this.selectHabit(val)
       });
 
@@ -495,7 +495,7 @@ export class HabitLogModal extends Modal {
       // Next button with sleek Lucide chevron-right
       const nextBtn = stepperContainer.createEl("button", {
         cls: "temperans-stepper-nav-btn",
-        attr: { type: "button", "aria-label": "Next habit" }
+        attr: { type: "button", "aria-label": t("aria.nextHabit") }
       });
       setIcon(nextBtn, "chevron-right");
       nextBtn.disabled = this.currentIndex === this.habits.length - 1;
@@ -529,7 +529,7 @@ export class HabitLogModal extends Modal {
     const leftControls = footer.createDiv({ cls: "temperans-stepper-footer-left" });
     if (this.habits.length > 1 || !this.isEmbedded) {
       const backNav = leftControls.createEl("button", {
-        text: "‹ Previous",
+        text: t("btn.prev"),
         attr: { type: "button" }
       });
       backNav.disabled = this.currentIndex === 0;
@@ -558,7 +558,7 @@ export class HabitLogModal extends Modal {
 
     if (this.currentIndex < this.habits.length - 1) {
       const nextNav = rightControls.createEl("button", {
-        text: "Next ›",
+        text: t("btn.next"),
         attr: { type: "button" }
       });
       nextNav.onclick = () => void this.navigate(1);
@@ -566,7 +566,7 @@ export class HabitLogModal extends Modal {
 
     const finishBtn = rightControls.createEl("button", {
       cls: "mod-cta",
-      text: "Finish",
+      text: t("log.finish"),
       attr: { type: "button" }
     });
     finishBtn.onclick = () => void this.finish();
@@ -577,7 +577,7 @@ export class HabitLogModal extends Modal {
     const heroCard = container.createDiv({ cls: "temperans-hero-card" });
     const header = heroCard.createDiv();
     this.renderHeroHeader(header, habit, Number(draft.amount) > 0 ? 1 : 0);
-    const label = habit.type === "avoidance" ? "Occurred" : habit.type === "tracker" ? "Yes" : "Done";
+    const label = habit.type === "avoidance" ? t("log.occurred") : habit.type === "tracker" ? t("log.yes") : t("log.done");
 
     new Setting(heroCard).setName(label).addToggle(toggle => toggle
       .setValue(Number(draft.amount) > 0)
@@ -590,7 +590,7 @@ export class HabitLogModal extends Modal {
       }));
 
     new Setting(heroCard).setName(habit.logging?.remark?.label ?? "Note")
-      .setDesc(habit.logging?.remark?.description ?? "Optional.")
+      .setDesc(habit.logging?.remark?.description ?? t("desc.optional"))
       .addText(input => input.setValue(draft.note).onChange(note => {
         draft.note = note;
         draft.dirty = true;
@@ -610,18 +610,18 @@ export class HabitLogModal extends Modal {
     const isTracker = habit.type === "tracker";
 
     const desc = isAvoidance
-      ? "Leave blank or 0 for a clean day. Enter slip count only if you slipped."
+      ? t("log.descAvoidance")
       : isTracker
-      ? `Log value for this date in ${habit.unit}. Zero-goal habit (does not affect streaks).`
-      : `Enter total in ${habit.unit}. Automatically saved on change or finish.`;
+      ? t("log.descTracker", { unit: habit.unit })
+      : t("log.descMetric", { unit: habit.unit });
 
     const placeholder = isAvoidance
-      ? "0 (clean day)"
-      : `Amount (${habit.unit})`;
+      ? t("log.zeroClean")
+      : t("log.amountUnit", { unit: habit.unit });
 
     new Setting(heroCard)
-      .setName(habit.logging?.amount?.label ?? (isAvoidance ? "Incidents / Slips" : "Progress amount"))
-      .setDesc(habit.logging?.amount?.description ?? (isTimeUnit(habit.unit) ? `Enter ${habit.unit}, H:MM, or a duration such as 1h 30m.` : desc))
+      .setName(habit.logging?.amount?.label ?? (isAvoidance ? t("unit.incidents") : t("log.progressAmount")))
+      .setDesc(habit.logging?.amount?.description ?? (isTimeUnit(habit.unit) ? t("log.enterUnitOrDuration", { unit: habit.unit }) : desc))
       .addText((input) => {
 
         input.setPlaceholder(habit.logging?.amount?.placeholder ?? placeholder).setValue(draft.amount).onChange((value) => {
@@ -641,14 +641,14 @@ export class HabitLogModal extends Modal {
     // 1-Tap Quick Adjuster Pills
     if (isAvoidance && habit.logging?.quickEntry === undefined) {
       const quickRow = heroCard.createDiv({ cls: "temperans-quick-actions-row" });
-      const cleanBtn = quickRow.createEl("button", { cls: "temperans-quick-pill is-clean", text: "✓ Clean Day (0)", attr: { type: "button" } });
+      const cleanBtn = quickRow.createEl("button", { cls: "temperans-quick-pill is-clean", text: t("dashboard.cleanDayZero"), attr: { type: "button" } });
       cleanBtn.onclick = () => {
         draft.amount = "0";
         draft.dirty = true;
         this.queueSave(habit.id, () => this.store.recordMetric(this.date, habit.id, 0, draft.note));
         void this.render();
       };
-      const slipBtn = quickRow.createEl("button", { cls: "temperans-quick-pill is-slip", text: "+1 Slip", attr: { type: "button" } });
+      const slipBtn = quickRow.createEl("button", { cls: "temperans-quick-pill is-slip", text: t("dashboard.plusOneSlip"), attr: { type: "button" } });
       slipBtn.onclick = () => {
         const cur = parseHabitAmount(draft.amount, habit) ?? 0;
         const next = cur + 1;
@@ -676,11 +676,11 @@ export class HabitLogModal extends Modal {
     }
 
     new Setting(heroCard)
-      .setName(habit.logging?.remark?.label ?? "Session remark")
-      .setDesc(habit.logging?.remark?.description ?? "Optional short note.")
+      .setName(habit.logging?.remark?.label ?? t("log.sessionRemark"))
+      .setDesc(habit.logging?.remark?.description ?? t("log.optionalShortNote"))
       .addText((input) => {
 
-        input.setPlaceholder(habit.logging?.remark?.placeholder ?? (isAvoidance ? "e.g. Trigger / remark" : "e.g. Focused session")).setValue(draft.note).onChange((value) => {
+        input.setPlaceholder(habit.logging?.remark?.placeholder ?? (isAvoidance ? t("ph.triggerRemark") : t("ph.focusedSession"))).setValue(draft.note).onChange((value) => {
           draft.note = value;
           draft.dirty = true;
           const num = draft.amount.trim() ? parseHabitAmount(draft.amount, habit) : (this.logData.metrics[habit.id] ?? 0);
@@ -699,8 +699,8 @@ export class HabitLogModal extends Modal {
     this.renderHeroHeader(heroCard, habit, currentMinutes);
 
     new Setting(heroCard)
-      .setName(habit.logging?.amount?.label ?? "Duration")
-      .setDesc(habit.logging?.amount?.description ?? "Enter hours, H:MM, or a duration such as 7h 30m. Automatically saved.")
+      .setName(habit.logging?.amount?.label ?? t("log.duration"))
+      .setDesc(habit.logging?.amount?.description ?? t("log.enterDurationSaved"))
       .addText((input) => {
 
         input.setPlaceholder(habit.logging?.amount?.placeholder ?? "7:30").setValue(draft.duration).onChange((value) => {
@@ -723,11 +723,11 @@ export class HabitLogModal extends Modal {
       }, parseSleepDuration);
 
     new Setting(heroCard)
-      .setName(habit.logging?.remark?.label ?? "Session remark")
-      .setDesc(habit.logging?.remark?.description ?? "Optional short note.")
+      .setName(habit.logging?.remark?.label ?? t("log.sessionRemark"))
+      .setDesc(habit.logging?.remark?.description ?? t("log.optionalShortNote"))
       .addText((input) => {
 
-        input.setPlaceholder(habit.logging?.remark?.placeholder ?? "e.g. Well rested").setValue(draft.note).onChange((value) => {
+        input.setPlaceholder(habit.logging?.remark?.placeholder ?? t("ph.wellRested")).setValue(draft.note).onChange((value) => {
           draft.note = value;
           draft.dirty = true;
           const mins = parseSleepDuration(draft.duration) ?? (this.logData.metrics[habit.id] ?? 0);
@@ -742,8 +742,8 @@ export class HabitLogModal extends Modal {
     const draft = this.typingDrafts.get(habit.id) ?? { duration: "", tests: "", note: "", dirty: false };
 
     new Setting(container)
-      .setName(habit.logging?.amount?.label ?? "Practice duration")
-      .setDesc(habit.logging?.amount?.description ?? "Enter minutes, M:SS (e.g. 14:24), or a duration such as 14m 24s.")
+      .setName(habit.logging?.amount?.label ?? t("log.practiceDuration"))
+      .setDesc(habit.logging?.amount?.description ?? t("log.enterMinutesHint"))
       .addText((input) => {
 
         input.setPlaceholder(habit.logging?.amount?.placeholder ?? "14:24").setValue(draft.duration).onChange((value) => {
@@ -759,7 +759,7 @@ export class HabitLogModal extends Modal {
       });
 
     new Setting(container)
-      .setName("Tests completed")
+      .setName(t("settings.testsCompleted"))
       .addText((input) => {
 
         input.setPlaceholder("0").setValue(draft.tests).onChange((value) => {
@@ -778,11 +778,11 @@ export class HabitLogModal extends Modal {
       });
 
     new Setting(container)
-      .setName(habit.logging?.remark?.label ?? "Optional note")
+      .setName(habit.logging?.remark?.label ?? t("log.optionalNote"))
       .setDesc(habit.logging?.remark?.description ?? "")
       .addText((input) => {
 
-        input.setPlaceholder(habit.logging?.remark?.placeholder ?? "e.g. Focused practice").setValue(draft.note).onChange((value) => {
+        input.setPlaceholder(habit.logging?.remark?.placeholder ?? t("ph.focusedPractice")).setValue(draft.note).onChange((value) => {
           draft.note = value;
           draft.dirty = true;
           const durSec = parseTypingDuration(draft.duration) ?? (this.logData.typing?.manualDurationSeconds ?? 0);
@@ -807,7 +807,7 @@ export class HabitLogModal extends Modal {
         : this.logData.typing.manualDurationSeconds;
       container.createEl("p", {
         cls: "temperans-endpoint-synced-hint",
-        text: `An automated endpoint supplied ${formatTypingDuration(syncedSeconds)} for this day. Manual entries override automated data.`
+        text: t("note.automatedEndpoint", { value: formatTypingDuration(syncedSeconds) })
       });
     }
 
@@ -824,13 +824,13 @@ export class HabitLogModal extends Modal {
 
     if (habitNote && sessions.length === 0) {
       const noteBanner = heroCard.createDiv({ cls: "temperans-endpoint-synced-hint" });
-      noteBanner.setText(`Imported session note: ${habitNote}`);
+      noteBanner.setText(t("log.importedNote", { note: habitNote }));
     }
 
     // Existing sessions list
     if (sessions.length > 0) {
       const listContainer = container.createDiv({ cls: "temperans-sessions-list-container" });
-      listContainer.createEl("strong", { text: `Recorded sessions (${sessions.length})` });
+      listContainer.createEl("strong", { text: t("header.recordedSessions", { n: sessions.length }) });
       const list = listContainer.createDiv({ cls: "temperans-modal-sessions-list" });
 
       for (const [idx, session] of sessions.entries()) {
@@ -844,10 +844,10 @@ export class HabitLogModal extends Modal {
         }).filter(Boolean) ?? [];
         const parts: string[] = dimensions.length > 0 ? dimensions : [];
         if (parts.length === 0) {
-          if (session.pages !== undefined) parts.push(`${session.pages} pages`);
-          if (session.chapters !== undefined) parts.push(`${session.chapters} ch`);
-          if (session.minutes !== undefined) parts.push(`${session.minutes} min`);
-          if (session.reps !== undefined) parts.push(`${session.reps} reps`);
+          if (session.pages !== undefined) parts.push(`${session.pages} ${t("unit.pages")}`);
+          if (session.chapters !== undefined) parts.push(`${session.chapters} ${t("unit.chaptersShort")}`);
+          if (session.minutes !== undefined) parts.push(`${session.minutes} ${t("unit.minShort")}`);
+          if (session.reps !== undefined) parts.push(`${session.reps} ${t("unit.repsShort")}`);
           if (session.count !== undefined) parts.push(`${session.count} ${habit.unit}`);
         }
 
@@ -860,7 +860,7 @@ export class HabitLogModal extends Modal {
 
         const deleteBtn = item.createEl("button", {
           cls: "temperans-task-order-button mod-warning",
-          attr: { type: "button", "aria-label": "Delete session" }
+          attr: { type: "button", "aria-label": t("aria.deleteSession") }
         });
         setIcon(deleteBtn, "trash-2");
         deleteBtn.onclick = async () => {
@@ -877,7 +877,7 @@ export class HabitLogModal extends Modal {
 
     // Add new session subsection
     const newSessionBox = container.createDiv({ cls: "temperans-add-session-box" });
-    newSessionBox.createEl("h4", { text: "Add a session" });
+    newSessionBox.createEl("h4", { text: t("btn.addSession") });
 
     const draft = this.sessionDrafts.get(habit.id) ?? {
       title: "",
@@ -889,8 +889,8 @@ export class HabitLogModal extends Modal {
       note: ""
     };
 
-    const titlePlaceholder = habit.id === "reading" ? "Book or text title" : "Session / activity title";
-    new Setting(newSessionBox).setName(habit.logging?.title?.label ?? "Title / Activity").setDesc(habit.logging?.title?.description ?? "").addText((input) => {
+    const titlePlaceholder = habit.id === "reading" ? t("log.bookTitle") : t("log.sessionActivityTitle");
+    new Setting(newSessionBox).setName(habit.logging?.title?.label ?? t("log.titleActivity")).setDesc(habit.logging?.title?.description ?? "").addText((input) => {
 
       input.setPlaceholder(habit.logging?.title?.placeholder ?? titlePlaceholder).setValue(draft.title).onChange((value) => { draft.title = value; });
     });
@@ -898,9 +898,9 @@ export class HabitLogModal extends Modal {
     const fields: Array<[keyof Pick<HabitSession, "pages" | "chapters" | "minutes" | "reps" | "count">, string]> =
       isTimeUnit(habit.unit) ? [["minutes", cadenceLabel(habit.unit)]]
       : habit.unit === "pages" || habit.id === "reading"
-      ? [["pages", "Pages"], ["chapters", "Chapters (optional)"], ["minutes", "Minutes (optional)"]]
-      : habit.unit === "reps" ? [["reps", "Reps"], ["minutes", "Minutes (optional)"]]
-      : [["count", `Amount (${habit.unit})`]];
+      ? [["pages", t("unit.pages")], ["chapters", t("log.chaptersOptional")], ["minutes", t("log.minutesOptional")]]
+      : habit.unit === "reps" ? [["reps", t("unit.reps")], ["minutes", t("log.minutesOptional")]]
+      : [["count", t("log.amountUnit", { unit: habit.unit })]];
     for (const [key, label] of fields) {
       const options = key === fields[0][0] ? habit.logging?.amount : undefined;
       new Setting(newSessionBox).setName(options?.label ?? label).setDesc(options?.description ?? "").addText((input) => {
@@ -921,15 +921,15 @@ export class HabitLogModal extends Modal {
         void this.render();
       }, parseSessionAmount);
 
-    new Setting(newSessionBox).setName(habit.logging?.remark?.label ?? "Session note (optional)").setDesc(habit.logging?.remark?.description ?? "").addText((input) => {
+    new Setting(newSessionBox).setName(habit.logging?.remark?.label ?? t("log.sessionNoteOptional")).setDesc(habit.logging?.remark?.description ?? "").addText((input) => {
 
-      input.setPlaceholder(habit.logging?.remark?.placeholder ?? "What did you work on?").setValue(draft.note).onChange((value) => { draft.note = value; });
+      input.setPlaceholder(habit.logging?.remark?.placeholder ?? t("ph.whatWorkedOn")).setValue(draft.note).onChange((value) => { draft.note = value; });
     });
 
     const addBtnRow = new Setting(newSessionBox).addButton((button) => button
-      .setButtonText("Add session")
+      .setButtonText(t("btn.addSession"))
       .onClick(async () => {
-        if (!Object.values(draft).some(value => value.trim())) { new Notice("Enter a session amount first."); return; }
+        if (!Object.values(draft).some(value => value.trim())) { new Notice(t("notice.enterSessionAmount")); return; }
         button.setDisabled(true);
         try {
           await this.flushCurrentHabit();
@@ -963,7 +963,7 @@ export class HabitLogModal extends Modal {
       };
     }
     if (showClear) {
-      const clear = row.createEl("button", { cls: "temperans-quick-pill is-clear", text: "Clear", attr: { type: "button" } });
+      const clear = row.createEl("button", { cls: "temperans-quick-pill is-clear", text: t("log.clear"), attr: { type: "button" } });
       clear.onclick = () => onValue(null);
     }
   }
@@ -971,10 +971,10 @@ export class HabitLogModal extends Modal {
   private renderEndpointSyncRow(container: HTMLElement, habit: HabitDefinition): void {
     if (!habit.endpoint || !this.onEndpointSync) return;
     new Setting(container)
-      .setName("Sync from external endpoint")
-      .setDesc(`Fetches the past 7 days from this task's configured API (${habit.endpoint.url}) without overwriting manual data.`)
+      .setName(t("settings.syncFromExternalEndpoint"))
+      .setDesc(t("desc.syncFetch", { url: habit.endpoint.url }))
       .addButton((button) => button
-        .setButtonText("Sync past 7 days")
+        .setButtonText(t("btn.syncPast7days"))
         .onClick(async () => {
           button.setDisabled(true);
           try {
@@ -1009,7 +1009,7 @@ export class EditHabitModal extends Modal {
   onOpen(): void {
     this.modalEl.addClass("temperans-modal", "temperans-edit-habit-modal");
     const { contentEl } = this;
-    contentEl.createEl("h2", { text: `Edit habit — ${this.habit.name}` });
+    contentEl.createEl("h2", { text: t("header.editHabit", { name: this.habit.name }) });
 
     let name = this.habit.name;
     let category = this.habit.category ?? "";
@@ -1028,25 +1028,25 @@ export class EditHabitModal extends Modal {
     let minimum = latestTarget?.min !== undefined ? String(latestTarget.min) : "30";
     let maximum = latestTarget?.max !== undefined ? String(latestTarget.max) : "";
 
-    new Setting(contentEl).setName("Habit name").addText((input) => input
+    new Setting(contentEl).setName(t("settings.habitName")).addText((input) => input
       .setValue(name)
       .onChange((value) => { name = value; }));
 
-    new Setting(contentEl).setName("Category").setDesc("Optional.")
-      .addText((input) => input.setValue(category).setPlaceholder("e.g. Fitness or Study")
+    new Setting(contentEl).setName(t("habit.category")).setDesc(t("desc.optional"))
+      .addText((input) => input.setValue(category).setPlaceholder(t("ph.exampleCategory"))
         .onChange((value) => { category = value; }));
 
-    new Setting(contentEl).setName("Enabled").setDesc("Disable to hide this habit from your daily completion score.")
+    new Setting(contentEl).setName(t("habit.enabled")).setDesc(t("desc.enabled"))
       .addToggle((toggle) => toggle.setValue(enabled).onChange((val) => { enabled = val; }));
 
     const habitTypeSetting = new Setting(contentEl)
-      .setName("Habit type")
-      .setDesc("Build habit (positive target), avoidance habit (negative/avoid), or zero-goal tracker.");
+      .setName(t("settings.habitType"))
+      .setDesc(t("desc.habitType"));
 
     const categoryOptions = [
-      { value: "build", label: "Build habit (positive target)" },
-      { value: "avoidance", label: "Avoidance habit (negative / quit)" },
-      { value: "tracker", label: "Zero-goal tracker (non-streak)" }
+      { value: "build", label: t("habit.buildType") },
+      { value: "avoidance", label: t("habit.avoidanceType") },
+      { value: "tracker", label: t("habit.trackerType") }
     ];
 
     const targetSection = contentEl.createDiv({ cls: "temperans-habit-targets-section" });
@@ -1059,14 +1059,14 @@ export class EditHabitModal extends Modal {
       if (isBooleanUnit(selectedUnitChoice === "custom" ? customUnitValue : selectedUnitChoice)) {
         targetSection.createEl("p", {
           cls: "temperans-habit-type-hint",
-          text: habitCategory === "avoidance" ? "Record whether it occurred. No occurrence meets the goal."
-            : habitCategory === "tracker" ? "Record yes or no without a numeric target."
-            : "Mark done once per cadence. No numeric target needed."
+          text: habitCategory === "avoidance" ? t("desc.avoidanceRecord")
+            : habitCategory === "tracker" ? t("desc.avoidanceRecordForm")
+            : t("desc.buildRecordForm")
         });
       } else if (habitCategory === "avoidance") {
         new Setting(targetSection)
-          .setName("Tolerance limit (max slips)")
-          .setDesc("0 means complete abstinence. Entering 0 or leaving unlogged is a success and builds your streak. Any value above this counts as a slip.")
+          .setName(t("settings.toleranceLimit"))
+          .setDesc(t("desc.abstinenceSlip"))
           .addText((input) => {
             input.setValue(maximum || "0").onChange((value) => { maximum = value; });
             input.inputEl.type = "number";
@@ -1076,13 +1076,13 @@ export class EditHabitModal extends Modal {
       } else if (habitCategory === "tracker") {
         targetSection.createEl("p", {
           cls: "temperans-habit-type-hint",
-          text: "Zero-goal habit: logs data without a target to reach or avoid. Missing a day will never break your daily streaks or lower your completion score."
+          text: t("desc.zeroGoalModal")
         });
       } else {
         // Build habit
         new Setting(targetSection)
-          .setName("Minimum target")
-          .setDesc("Required.")
+          .setName(t("settings.minimumTarget"))
+          .setDesc(t("desc.required"))
           .addText((input) => {
             input.setValue(minimum).onChange((val) => { minimum = val; });
             input.inputEl.type = "number";
@@ -1091,8 +1091,8 @@ export class EditHabitModal extends Modal {
           });
 
         new Setting(targetSection)
-          .setName("Maximum target")
-          .setDesc("Optional ceiling (useful for bounded ranges such as calories).")
+          .setName(t("settings.maximumTarget"))
+          .setDesc(t("desc.maxTargetCeiling"))
           .addText((input) => {
             input.setValue(maximum).onChange((val) => { maximum = val; });
             input.inputEl.type = "number";
@@ -1101,8 +1101,8 @@ export class EditHabitModal extends Modal {
           });
 
         new Setting(sessionSection)
-          .setName("Multi-entry sessions")
-          .setDesc("Log multiple entries with titles and notes throughout the day.")
+          .setName(t("settings.multiEntrySessions"))
+          .setDesc(t("desc.multiEntry"))
           .addToggle((toggle) => toggle.setValue(isSessionHabit).onChange((v) => { isSessionHabit = v; }));
 
       }
@@ -1111,7 +1111,7 @@ export class EditHabitModal extends Modal {
     createTemperansDropdown(habitTypeSetting.controlEl, {
       value: habitCategory,
       options: categoryOptions,
-      ariaLabel: "Choose habit type",
+      ariaLabel: t("aria.chooseType"),
       onChange: (value) => {
         habitCategory = value as "build" | "avoidance" | "tracker";
         updateSectionsVisibility();
@@ -1122,12 +1122,12 @@ export class EditHabitModal extends Modal {
     let selectedUnitChoice = isPreset ? unit : "custom";
     let customUnitValue = isPreset ? "" : unit;
 
-    const unitSetting = new Setting(contentEl).setName("Unit");
+    const unitSetting = new Setting(contentEl).setName(t("habit.unit"));
     const customUnitContainer = contentEl.createDiv({ cls: "temperans-custom-unit-setting" });
     if (isPreset) customUnitContainer.addClass("temperans-hidden");
 
     new Setting(customUnitContainer)
-      .setName("Custom unit name")
+      .setName(t("settings.customUnitName"))
       .addText((input) => {
         input.setValue(customUnitValue);
         input.onChange((val) => { customUnitValue = val.trim(); updateSectionsVisibility(); });
@@ -1136,7 +1136,7 @@ export class EditHabitModal extends Modal {
     createTemperansDropdown(unitSetting.controlEl, {
       value: selectedUnitChoice,
       options: Object.keys(UNIT_LABELS).map((v) => ({ value: v, label: UNIT_LABELS[v] })),
-      ariaLabel: "Choose a task unit",
+      ariaLabel: t("aria.chooseUnit"),
       onChange: (value) => {
         selectedUnitChoice = value;
         customUnitContainer.toggleClass("temperans-hidden", value !== "custom");
@@ -1144,20 +1144,20 @@ export class EditHabitModal extends Modal {
       }
     });
 
-    const cadenceSetting = new Setting(contentEl).setName("Goal cadence");
+    const cadenceSetting = new Setting(contentEl).setName(t("settings.goalCadence"));
     createTemperansDropdown(cadenceSetting.controlEl, {
       value: cadence,
       options: CADENCE_OPTIONS,
-      ariaLabel: "Choose a goal cadence",
+      ariaLabel: t("aria.chooseCadence"),
       onChange: (value) => { cadence = value as HabitCadence; }
     });
 
     updateSectionsVisibility();
 
     const saveRow = new Setting(contentEl).addButton((button) => button
-      .setButtonText("Save changes")
+      .setButtonText(t("btn.saveChanges"))
       .onClick(async () => {
-        if (!name.trim()) return new Notice("Enter a habit name.");
+        if (!name.trim()) return new Notice(t("notice.enterName"));
 
         let targetHistory = [...this.habit.targetHistory];
         const today = todayInZone(this.timezone);
@@ -1173,7 +1173,7 @@ export class EditHabitModal extends Modal {
         } else if (habitCategory === "avoidance") {
           finalType = "avoidance";
           const max = maximum.trim() ? Number(maximum) : 0;
-          if (!Number.isFinite(max) || max < 0) return new Notice("Enter a valid tolerance limit (0 or more).");
+          if (!Number.isFinite(max) || max < 0) return new Notice(t("notice.enterValidToleranceZero"));
           const lastIdx = targetHistory.length - 1;
           if (lastIdx >= 0 && targetHistory[lastIdx].effectiveDate === today) {
             targetHistory[lastIdx] = { effectiveDate: today, max };
@@ -1192,8 +1192,8 @@ export class EditHabitModal extends Modal {
           finalType = isSessionHabit ? "session" : "metric";
           const min = Number(minimum);
           const max = maximum.trim() ? Number(maximum) : undefined;
-          if (!Number.isFinite(min) || min < 0) return new Notice("Enter a valid minimum target.");
-          if (max !== undefined && (!Number.isFinite(max) || max < min)) return new Notice("The maximum must be at least the minimum.");
+          if (!Number.isFinite(min) || min < 0) return new Notice(t("notice.enterValidMin"));
+          if (max !== undefined && (!Number.isFinite(max) || max < min)) return new Notice(t("notice.maxBelowMin"));
 
           const lastIdx = targetHistory.length - 1;
           if (lastIdx >= 0 && targetHistory[lastIdx].effectiveDate === today) {
@@ -1214,7 +1214,7 @@ export class EditHabitModal extends Modal {
           type: finalType,
           targetHistory
         });
-        new Notice(`${name.trim()} updated.`);
+        new Notice(t("notice.updated", { name: name.trim() }));
         this.close();
       }));
     saveRow.settingEl.addClass("temperans-modal-save-row");

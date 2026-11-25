@@ -1,3 +1,4 @@
+import { t, setLocale } from "./i18n";
 import { App, Modal } from "obsidian";
 import type { HabitStore } from "./data";
 import { loadAnalyticsSummaryData, renderAnalyticsPanel } from "./analytics-panel";
@@ -22,10 +23,10 @@ export class HabitAnalyticsModal extends Modal {
     contentEl.empty();
     const summary = await loadAnalyticsSummaryData(this.store, this.year);
     const header = contentEl.createDiv({ cls: "temperans-analytics-header" });
-    header.createEl("h2", { text: `Habit analytics — ${this.year}` });
+    header.createEl("h2", { text: t("header.analyticsYear", { year: this.year }) });
     if (summary.habits.length) renderAnalyticsShareActions(header, this.app, this.store, summary);
     contentEl.createEl("p", {
-      text: "Comprehensive performance metrics, volume, consistency, and streaks across all configured tasks."
+      text: t("analytics.shareIntro")
     });
     renderAnalyticsPanel(contentEl, summary);
   }

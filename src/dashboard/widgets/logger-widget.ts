@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import { HabitLogModal } from "../../modals";
 import { HabitDefinition, HabitId } from "../../types";
 import { normalizeHabitList } from "../codeblock-parser";
@@ -43,8 +44,8 @@ export function resolveLoggerHabits(ctx: Pick<WidgetContext, "settings" | "habit
 
 export class LoggerWidget implements DashboardWidget {
   id = "logger";
-  name = "Embedded Habit Logger";
-  description = "Embeds the full interactive Log habits modal interface directly inside a note or dashboard.";
+  name = t("widget.logger.name");
+  description = t("widget.logger.description");
 
   async render(container: HTMLElement, ctx: WidgetContext, config?: Record<string, unknown>): Promise<void> {
     container.empty();
@@ -71,7 +72,7 @@ export class LoggerWidget implements DashboardWidget {
 
     if (enabledHabits.length === 0 && category) {
       container.createEl("p", {
-        text: `No enabled habits match “${category}” with the current filters.`,
+        text: t("widget.logger.noMatch", { category }),
         attr: { role: "status" }
       });
       return;

@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import { refreshInBackground } from "../background-refresh";
 import { calendarModeFor } from "../format";
 import { setIcon } from "obsidian";
@@ -10,8 +11,8 @@ import { DEFAULT_STATE } from "../../default-state";
 
 export class HeaderWidget implements DashboardWidget {
   id = "header";
-  name = "Header Controls";
-  description = "Title, quick-log action, period navigation, and habit filter dropdown.";
+  name = t("widget.header.name");
+  description = t("widget.header.description");
 
   render(container: HTMLElement, ctx: WidgetContext, config?: Record<string, unknown>): void {
     container.empty();
@@ -37,7 +38,7 @@ export class HeaderWidget implements DashboardWidget {
 
     if (showActions) {
       const actions = container.createDiv({ cls: "temperans-header-actions" });
-      const logButton = actions.createEl("button", { cls: "mod-cta", text: "Log today", attr: { type: "button" } });
+      const logButton = actions.createEl("button", { cls: "mod-cta", text: t("dashboard.logToday"), attr: { type: "button" } });
       logButton.onclick = () => new HabitLogModal(
         ctx.app,
         ctx.host.store,
@@ -53,7 +54,7 @@ export class HeaderWidget implements DashboardWidget {
 
       const settingsButton = actions.createEl("button", {
         cls: "temperans-icon-button",
-        attr: { type: "button", "aria-label": "Open Temperans actions" }
+        attr: { type: "button", "aria-label": t("dashboard.actionsAria") }
       });
       setIcon(settingsButton, "settings");
       settingsButton.onclick = () => new DashboardActionsModal(ctx.app, ctx.host, async () => ctx.onRefresh()).open();
@@ -68,7 +69,7 @@ export class HeaderWidget implements DashboardWidget {
           text: "‹",
           attr: {
             type: "button",
-            "aria-label": monthMode ? "Previous month" : "Previous year"
+            "aria-label": monthMode ? t("dashboard.prevMonth") : t("dashboard.prevYear")
           }
         });
         previousBtn.onclick = () => ctx.onNavigatePeriod(-1);
@@ -82,7 +83,7 @@ export class HeaderWidget implements DashboardWidget {
           cls: "temperans-year",
           attr: onTodayPeriod
             ? { type: "button" }
-            : { type: "button", "aria-label": "Jump to today" }
+            : { type: "button", "aria-label": t("dashboard.jumpToday") }
         });
         periodLabel.disabled = onTodayPeriod;
         periodLabel.onclick = () => ctx.onGoToToday();
@@ -91,7 +92,7 @@ export class HeaderWidget implements DashboardWidget {
           text: "›",
           attr: {
             type: "button",
-            "aria-label": monthMode ? "Next month" : "Next year"
+            "aria-label": monthMode ? t("dashboard.nextMonth") : t("dashboard.nextYear")
           }
         });
         this.updateNextButtonState(nextBtn, ctx);
@@ -103,10 +104,10 @@ export class HeaderWidget implements DashboardWidget {
         createTemperansDropdown(filter, {
           value: ctx.habitFilter,
           options: [
-            { value: "overall", label: "Overall daily consistency" },
+            { value: "overall", label: t("dashboard.filterOverall") },
             ...ctx.settings.habits.filter((h) => h.enabled).map((h) => ({ value: h.id, label: `${h.name} (${h.cadence})` }))
           ],
-          ariaLabel: "Choose a habit heat map",
+          ariaLabel: t("dashboard.filterAria"),
           className: "temperans-dashboard-dropdown",
           onChange: (value) => ctx.onSelectHabit(value)
         });

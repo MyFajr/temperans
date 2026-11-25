@@ -1,23 +1,24 @@
-export const UNIT_LABELS: Record<string, string> = {
-  count: "Count",
-  boolean: "Boolean (done / not done)",
-  minutes: "Minutes",
-  hours: "Hours",
-  reps: "Reps",
-  steps: "Steps",
-  km: "Kilometres (km)",
-  miles: "Miles",
-  pages: "Pages",
-  chapters: "Chapters",
-  words: "Words",
-  kcal: "Calories (kcal)",
-  ml: "Millilitres (ml)",
-  glasses: "Glasses",
-  incidents: "Incidents / Slips",
-  kg: "Kilograms (kg)",
-  lbs: "Pounds (lbs)",
-  tests: "Tests",
-  custom: "Custom unit..."
+import { t, setLocale } from "./i18n";
+successfully downloaded text file (SHA: b42a91595e1cefa155c871f09c2f94e1f1d22f4f)export const UNIT_LABELS: Record<string, string> = {
+  count: t("unit.count"),
+  boolean: t("unit.boolean"),
+  minutes: t("unit.minutes"),
+  hours: t("unit.hours"),
+  reps: t("unit.reps"),
+  steps: t("unit.steps"),
+  km: t("unit.km"),
+  miles: t("unit.miles"),
+  pages: t("unit.pages"),
+  chapters: t("unit.chapters"),
+  words: t("unit.words"),
+  kcal: t("unit.kcal"),
+  ml: t("unit.ml"),
+  glasses: t("unit.glasses"),
+  incidents: t("unit.incidents"),
+  kg: t("unit.kg"),
+  lbs: t("unit.lbs"),
+  tests: t("unit.tests"),
+  custom: t("unit.custom")
 };
 
 export function isBooleanUnit(unit: string): boolean {
@@ -25,9 +26,9 @@ export function isBooleanUnit(unit: string): boolean {
 }
 
 export const CADENCE_OPTIONS = [
-  { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "quarterly", label: "Quarterly" },
-  { value: "annual", label: "Annual" }
+  { value: "daily", label: t("cadence.daily") },
+  { value: "weekly", label: t("cadence.weekly") },
+  { value: "monthly", label: t("cadence.monthly") },
+  { value: "quarterly", label: t("cadence.quarterly") },
+  { value: "annual", label: t("cadence.annual") }
 ];

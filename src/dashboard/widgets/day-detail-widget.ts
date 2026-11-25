@@ -1,3 +1,11 @@
+import { t } from "../../i18n";
+
+const statusLabelMap: Record<string, string> = { complete: "status.complete", partial: "status.partial", missed: "status.missed", pending: "status.pending" };
+const statusLabel = (s: string): string => {
+  const k = statusLabelMap[s];
+  return k ? t(k as any) : s;
+};
+
 import { refreshInBackground } from "../background-refresh";
 import { setIcon } from "obsidian";
 import { formatDate } from "../../date";
@@ -24,8 +32,8 @@ function typingSummary(log: DailyLog): string {
 
 export class DayDetailWidget implements DashboardWidget {
   id = "day-detail";
-  name = "Day Detail Inspector";
-  description = "Detailed list of targets, logged progress, source icons, and session notes for the selected date.";
+  name = t("widget.dayDetail.name");
+  description = t("widget.dayDetail.description");
 
   render(container: HTMLElement, ctx: WidgetContext, config?: Record<string, unknown>): void {
     container.empty();
@@ -55,12 +63,12 @@ export class DayDetailWidget implements DashboardWidget {
     const date = ctx.selectedDate;
     const evaluation = date ? ctx.evaluations.get(date) : undefined;
     if (!date || !evaluation) {
-      header.createEl("h3", { text: "No days yet" });
+      header.createEl("h3", { text: t("widget.dayDetail.noDaysYet") });
       scroll.createEl("p", {
         cls: "temperans-empty-detail",
         text: ctx.isCompact
-          ? "No habit days are available in this month yet. Log today or choose another month."
-          : "No habit days are available in this period yet. Log today or choose another year."
+          ? t("widget.dayDetail.emptyMonth")
+          : t("widget.dayDetail.emptyPeriod")
       });
       return;
     }
@@ -85,7 +93,7 @@ export class DayDetailWidget implements DashboardWidget {
     header.createEl("h3", { text: formatDate(evaluation.date) });
     const editButton = header.createEl("button", {
       cls: "temperans-edit-day",
-      attr: { "aria-label": `Edit ${formatDate(evaluation.date)}` }
+      attr: { "aria-label": t("widget.dayDetail.editDay", { date: formatDate(evaluation.date) }) }
     });
     setIcon(editButton, "square-pen");
     editButton.onclick = () => new HabitLogModal(
@@ -114,7 +122,7 @@ export class DayDetailWidget implements DashboardWidget {
     );
 
     if (!daily.length && !periodic.length) {
-      detail.createEl("p", { cls: "temperans-empty-detail", text: "No enabled tasks. Add one from Temperans actions." });
+      detail.createEl("p", { cls: "temperans-empty-detail", text: t("widget.dayDetail.noEnabledTasks") });
       return;
     }
 
@@ -133,18 +141,18 @@ export class DayDetailWidget implements DashboardWidget {
       if (source && source !== "manual") {
         renderSourceIcon(valueSpan, source, setIcon);
       }
-      row.createSpan({ text: item.status, cls: "temperans-status" });
+      row.createSpan({ text: statusLabel(item.status), cls: "temperans-status" });
       const note = noteForHabit(log, item.habit.id);
       if (showNotes && note) list.createDiv({ cls: "temperans-detail-note", text: note });
     }
 
     if (periodic.length && ctx.periodsPending) {
-      detail.createDiv({ cls: "temperans-loading-status", text: ctx.periodsError ? "Could not load period totals." : "Loading period totals…", attr: { role: "status" } });
-      if (ctx.periodsError) detail.createEl("button", { text: "Retry", attr: { type: "button" } }).onclick = () => refreshInBackground(ctx);
+      detail.createDiv({ cls: "temperans-loading-status", text: ctx.periodsError ? t("widget.dayDetail.loadError") : t("widget.dayDetail.loadingTotals"), attr: { role: "status" } });
+      if (ctx.periodsError) detail.createEl("button", { text: t("log.retry"), attr: { type: "button" } }).onclick = () => refreshInBackground(ctx);
     }
     if (periodic.length && !ctx.periodsPending) {
       const goals = detail.createDiv({ cls: "temperans-detail-period-goals" });
-      goals.createEl("strong", { text: "Period goals" });
+      goals.createEl("strong", { text: t("widget.dayDetail.periodGoals") });
       for (const habit of periodic) {
         const period = evaluatePeriodGoal(habit, evaluation.date, ctx.logs);
         const row = goals.createDiv({ cls: `temperans-detail-row is-${period.status}` });
@@ -156,7 +164,7 @@ export class DayDetailWidget implements DashboardWidget {
         if (source && source !== "manual") {
           renderSourceIcon(valueSpan, source, setIcon);
         }
-        row.createSpan({ text: period.status, cls: "temperans-status" });
+        row.createSpan({ text: statusLabel(period.status), cls: "temperans-status" });
         const note = noteForHabit(log, habit.id);
         if (showNotes && note) goals.createDiv({ cls: "temperans-detail-note", text: note });
       }
@@ -171,19 +179,19 @@ export class DayDetailWidget implements DashboardWidget {
       if (!sessions || !sessions.length) continue;
       if (filterSet && !filterSet.has(habitId)) continue;
       const habitDef = ctx.settings.habits.find((h) => h.id === habitId);
-      const habitName = habitDef?.name || (habitId === "reading" ? "Reading" : habitId);
+      const habitName = habitDef?.name || (habitId === "reading" ? t("widget.dayDetail.reading") : habitId);
       const sessionBlock = detail.createDiv({ cls: "temperans-reading" });
-      sessionBlock.createEl("strong", { text: `${habitName} sessions` });
+      sessionBlock.createEl("strong", { text: t("widget.dayDetail.sessions", { name: habitName }) });
       for (const session of sessions) {
         const dimensions = session.values?.map((value, index) => {
           const unit = session.units?.[index];
           return value > 0 ? `${value}${unit ? ` ${unit}` : ""}` : "";
         }).filter(Boolean) ?? [];
         const parts = dimensions.length > 0 ? dimensions : [
-          session.pages ? `${session.pages} pages` : "",
-          session.chapters ? `${session.chapters} chapters` : "",
-          session.minutes ? `${session.minutes} min` : "",
-          session.reps ? `${session.reps} reps` : "",
+          session.pages ? `${t("widget.dayDetail.pages", { n: session.pages })}` : "",
+          session.chapters ? `${t("widget.dayDetail.chapters", { n: session.chapters })}` : "",
+          session.minutes ? `${t("widget.dayDetail.minutes", { n: session.minutes })}` : "",
+          session.reps ? `${t("widget.dayDetail.reps", { n: session.reps })}` : "",
           session.count ? `${session.count}` : ""
         ].filter(Boolean);
         const details = parts.length > 0 ? ` — ${parts.join(" · ")}` : "";

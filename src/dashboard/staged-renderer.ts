@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { Notice } from "obsidian";
 import { abortable, checkAbort, isAbort, yieldToHost } from "../async";
 import { calculateHabitAnalytics, HabitAnalytics } from "../analytics";
@@ -93,7 +94,7 @@ export class StagedDashboard {
   private placeholder(entry: WidgetEntry): void {
     entry.container.empty(); entry.container.addClass("is-loading");
     entry.container.setAttribute("aria-busy", "true");
-    const label = entry.widget.id === "stats" ? "Loading statistics…" : entry.widget.id === "calendar" ? "Loading calendar…" : entry.widget.id === "day-detail" ? "Loading selected day…" : entry.widget.id === "logger" ? "Loading logger…" : "Loading goals…";
+    const label = entry.widget.id === "stats" ? t("loading.stats") : entry.widget.id === "calendar" ? t("loading.calendar") : entry.widget.id === "day-detail" ? t("loading.dayDetail") : entry.widget.id === "logger" ? t("loading.logger") : t("loading.goals");
     entry.container.createDiv({ cls: "temperans-loading-status", text: label, attr: { role: "status" } });
   }
   private async day(includePeriods: boolean): Promise<void> {
@@ -149,9 +150,9 @@ export class StagedDashboard {
       if (isAbort(error) || this.signal.aborted) throw error;
       for (const entry of this.entries.filter(e => !e.ready)) {
         entry.container.empty(); entry.container.removeClass("is-loading"); entry.container.setAttribute("aria-busy", "false");
-        entry.container.createDiv({ cls: "temperans-loading-status", text: "Could not load habit data." });
-        const retry = entry.container.createEl("button", { text: "Retry", attr: { type: "button" } });
-        retry.onclick = () => void this.ctx.onRefresh().catch(error => new Notice(error instanceof Error ? error.message : "Dashboard refresh failed."));
+        entry.container.createDiv({ cls: "temperans-loading-status", text: t("error.couldNotLoadData") });
+        const retry = entry.container.createEl("button", { text: t("log.retry"), attr: { type: "button" } });
+        retry.onclick = () => void this.ctx.onRefresh().catch(error => new Notice(error instanceof Error ? error.message : t("error.dashboardRefreshFailed")));
       }
       throw error;
     }

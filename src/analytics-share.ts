@@ -1,3 +1,4 @@
+import { t, setLocale } from "./i18n";
 import { App, Notice, setIcon, setTooltip } from "obsidian";
 import { buildAnalyticsShareText, saveAnalyticsExport } from "./analytics-export";
 import type { HabitStore } from "./data";
@@ -14,21 +15,21 @@ export function renderAnalyticsShareActions(
     cls: "temperans-analytics-share-trigger",
     attr: {
       type: "button",
-      "aria-label": "Share analytics summary",
+      "aria-label": t("analytics.share"),
       "aria-haspopup": "menu",
       "aria-expanded": "false"
     }
   });
-  setTooltip(shareButton, "Share analytics summary");
+  setTooltip(shareButton, t("analytics.share"));
   setIcon(shareButton, "share");
 
   const menu = section.createDiv({ cls: "temperans-analytics-share-menu" });
   menu.setAttribute("role", "menu");
-  menu.setAttribute("aria-label", "Share analytics summary");
+  menu.setAttribute("aria-label", t("analytics.share"));
 
-  const copyButton = createMenuAction(menu, "Copy to clipboard", "copy", "Copy analytics summary to clipboard");
-  const jsonButton = createMenuAction(menu, "Save JSON file", "file-json", "Save analytics summary as JSON");
-  const csvButton = createMenuAction(menu, "Save CSV file", "file-spreadsheet", "Save analytics summary as CSV");
+  const copyButton = createMenuAction(menu, t("analytics.copyMenu"), "copy", t("analytics.copyAria"));
+  const jsonButton = createMenuAction(menu, t("analytics.saveJsonMenu"), "file-json", t("analytics.saveJsonAria"));
+  const csvButton = createMenuAction(menu, t("analytics.saveCsvMenu"), "file-spreadsheet", t("analytics.saveCsvAria"));
 
   let outsidePointerListener: ((event: PointerEvent) => void) | undefined;
   const menuButtons = [copyButton, jsonButton, csvButton];
@@ -77,8 +78,8 @@ export function renderAnalyticsShareActions(
   copyButton.onclick = () => {
     setOpen(false);
     void copyAnalyticsSummary(summary)
-      .then(() => new Notice("Summary copied to clipboard."))
-      .catch((error: unknown) => new Notice(error instanceof Error ? error.message : "Could not copy the summary."));
+      .then(() => new Notice(t("notice.copied")))
+      .catch((error: unknown) => new Notice(error instanceof Error ? error.message : t("analytics.copyFailed")));
   };
   jsonButton.onclick = () => saveExport("json");
   csvButton.onclick = () => saveExport("csv");
@@ -86,8 +87,8 @@ export function renderAnalyticsShareActions(
   function saveExport(format: "json" | "csv"): void {
     setOpen(false);
     void saveAnalyticsExport(app, store, summary, format)
-      .then((path) => new Notice(format === "csv" ? `Saved CSV and period metadata: ${path}` : `Saved JSON summary: ${path}`))
-      .catch((error: unknown) => new Notice(error instanceof Error ? error.message : `Could not save ${format.toUpperCase()} summary.`));
+      .then((path) => new Notice(format === "csv" ? t("notice.savedCsv", { path }) : t("notice.savedJson", { path })))
+      .catch((error: unknown) => new Notice(error instanceof Error ? error.message : t("notice.couldNotSaveSummary", { format: format.toUpperCase() })));
   }
 }
 
@@ -104,11 +105,11 @@ function createMenuAction(parent: HTMLElement, label: string, icon: string, aria
 export async function copyAnalyticsSummary(summary: AnalyticsSummaryData): Promise<void> {
   const value = buildAnalyticsShareText(summary);
   if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-    throw new Error("Clipboard access is unavailable in this app context.");
+    throw new Error(t("error.clipboardUnavailable"));
   }
   try {
     await navigator.clipboard.writeText(value);
   } catch {
-    throw new Error("Could not copy the summary. Clipboard access may be blocked.");
+    throw new Error(t("analytics.copyFailed"));
   }
 }

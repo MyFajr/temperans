@@ -1,3 +1,4 @@
+import { t, setLocale } from "./i18n";
 import { HABIT_PRESETS, HabitPreset } from "./habit-presets";
 import { createSubpageCard } from "./ui";
 import { Notice, setIcon } from "obsidian";
@@ -23,12 +24,12 @@ export async function renderBrowsePresets(
     {
       key: "health-connect",
       title: "Health Connect",
-      desc: "Biometric and health metrics exported by the Android companion app."
+      desc: t("presets.healthConnectDesc")
     },
     {
       key: "connected-apis",
       title: "Connected APIs",
-      desc: "Third-party services with REST API endpoints and secret storage."
+      desc: t("presets.connectedApisDesc")
     }
   ];
 
@@ -67,7 +68,7 @@ export async function renderBrowsePresets(
       if (options.onCustomize && !isAlreadyAdded) {
         customizeBtn = actions.createEl("button", {
           cls: "temperans-preset-add-btn",
-          text: "Customize",
+          text: t("presets.customize"),
           attr: { type: "button" }
         });
         customizeBtn.onclick = (e) => {
@@ -78,7 +79,7 @@ export async function renderBrowsePresets(
 
       const addBtn = actions.createEl("button", {
         cls: `temperans-preset-add-btn ${isAlreadyAdded ? "" : "mod-cta"}`,
-        text: isAlreadyAdded ? "Configured" : "Add",
+        text: isAlreadyAdded ? t("presets.configured") : t("presets.add"),
         attr: { type: "button" }
       });
       addBtn.disabled = isAlreadyAdded;
@@ -86,7 +87,7 @@ export async function renderBrowsePresets(
       addBtn.onclick = async (e) => {
         e?.stopPropagation?.();
         if (existingIds.has(preset.id)) {
-          new Notice(`“${preset.name}” is already configured.`);
+          new Notice(t("notice.alreadyConfigured", { name: preset.name }));
           return;
         }
         addBtn.disabled = true;
@@ -106,13 +107,13 @@ export async function renderBrowsePresets(
           ...(preset.endpoint ? { endpoint: preset.endpoint } : {})
         });
         existingIds.add(preset.id);
-        addBtn.textContent = "Configured";
+        addBtn.textContent = t("presets.configured");
         addBtn.removeClass("mod-cta");
         if (customizeBtn) customizeBtn.addClass("temperans-hidden");
         if (preset.endpoint) {
-          new Notice(`Created “${preset.name}”. Configure API key in Settings → Automated API endpoints.`);
+          new Notice(t("notice.createdEndpoint", { name: preset.name }));
         } else {
-          new Notice(`Created “${preset.name}”.`);
+          new Notice(t("notice.created", { name: preset.name }));
         }
         await options.onAdded();
       };
