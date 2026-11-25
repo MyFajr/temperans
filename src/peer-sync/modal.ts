@@ -1,4 +1,4 @@
-import { t } from "../../i18n";
+import { t } from "../i18n";
 import { App, Modal } from "obsidian";
 import { PeerSyncService } from "./service";
 import { renderPeerSyncSettings } from "./settings-panel";
