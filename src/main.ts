@@ -4,7 +4,7 @@ import { operationFolder } from "./paths";
 import { healthConnectStagePath } from "./integrations/health-connect";
 import { HealthConnectPathControl } from "./integrations/health-connect-panel";
 import { NotePathSettings, noteFormat, restoreNotePath, validateNoteFormat } from "./note-paths";
-import { MarkdownPostProcessorContext, Notice, Plugin, TAbstractFile, TFile, TFolder, normalizePath, requestUrl } from "obsidian";
+import { MarkdownPostProcessorContext, Notice, Plugin, TAbstractFile, TFile, TFolder, getLanguage, normalizePath, requestUrl } from "obsidian";
 import { HabitStore } from "./data";
 import { DASHBOARD_VIEW_TYPE, HabitDashboardView } from "./dashboard";
 import { DASHBOARD_FILE, ensureDashboardFile } from "./dashboard/layout-loader";
@@ -508,5 +508,4 @@ export default class TemperansHabitsPlugin extends Plugin {
 }
 
 // Локаль (ru/en): определяется языком интерфейса Obsidian, иначе английский.
-const OBS_LANG = typeof window !== "undefined" && (window as any).localStorage ? (window as any).localStorage.getItem("language") : "";
-if (OBS_LANG && OBS_LANG !== "en") setLocale(OBS_LANG);
+setLocale(getLanguage());
