@@ -1,4 +1,6 @@
-import { t } from "./i18n";export const UNIT_LABELS: Record<string, string> = {
+import { t } from "./i18n";
+
+export const UNIT_LABELS: Record<string, string> = {
   count: t("unit.count"),
   boolean: t("unit.boolean"),
   minutes: t("unit.minutes"),
