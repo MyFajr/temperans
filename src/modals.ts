@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { followModalViewport } from "./modal-viewport";
 import { serialized } from "./async";
 import { CADENCE_OPTIONS, UNIT_LABELS, isBooleanUnit } from "./habit-options";
