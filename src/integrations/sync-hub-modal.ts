@@ -1,4 +1,4 @@
-import { t } from "../../i18n";
+import { t } from "../i18n";
 import { App, Modal } from "obsidian";
 import { HealthConnectImportSummary } from "./health-connect";
 import { HealthConnectPathControl, renderHealthConnectPanel } from "./health-connect-panel";
