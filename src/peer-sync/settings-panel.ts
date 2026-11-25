@@ -1,4 +1,4 @@
-import { t, plural } from "../../i18n";
+import { t, plural } from "../i18n";
 import { createSubpageCard } from "../ui";
 import { Notice, Platform, Setting, setIcon } from "obsidian";
 import { PeerSyncComparison, PeerSyncService, PeerSyncTransferResult } from "./service";
