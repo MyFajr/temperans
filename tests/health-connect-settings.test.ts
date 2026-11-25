@@ -2,6 +2,7 @@ import { expect, it, vi } from "vitest";
 vi.mock("obsidian", async importOriginal => ({
   ...await importOriginal<object>(),
   Plugin: class {},
+  getLanguage: () => "en",
   MarkdownRenderChild: class {},
   PluginSettingTab: class { containerEl = {}; update() {} display() {} hide() {} },
   SettingPage: class { containerEl = {}; title = ""; display() {} hide() {} },
