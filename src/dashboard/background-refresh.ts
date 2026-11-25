@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { Notice } from "obsidian";
 import { WidgetContext } from "./types";
 
