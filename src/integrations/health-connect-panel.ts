@@ -1,4 +1,4 @@
-import { t } from "../../i18n";
+import { t } from "../i18n";
 import { createSubpageCard } from "../ui";
 import { Notice, Setting } from "obsidian";
 import { HealthConnectImportSummary } from "./health-connect";
