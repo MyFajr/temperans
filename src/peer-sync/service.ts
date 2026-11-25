@@ -1,4 +1,4 @@
-import { t } from "../../i18n";
+import { t } from "../i18n";
 import { App, Platform } from "obsidian";
 import { HabitStore } from "../data";
 import { PluginState } from "../types";
