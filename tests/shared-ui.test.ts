@@ -74,7 +74,7 @@ describe("shared habit creation", () => {
     expect(returnContainer.all().some((node) => node.textContent?.toLowerCase().includes("habits") || node.textContent?.includes("Habit actions"))).toBe(true);
   });
 
-  it.each(["Avoidance habit", "Metric tracker"])("saves %s with the correct target and keyboard selection", async title => {
+  it.each(["Avoidance habit (negative / quit)", "Metric tracker"])("saves %s with the correct target and keyboard selection", async title => {
     const root = new Element(), store = makeStore();
     await renderAddHabitForm(root.element(), storeType(store), vi.fn());
     change(root, "Habit name", "New Habit");
@@ -82,8 +82,8 @@ describe("shared habit creation", () => {
     root.find(node => node.attrs["aria-label"] === title).onkeydown!({ key: " ", preventDefault });
     await root.button("Create habit").onclick!();
     const habit = store.addHabit.mock.calls[0][0];
-    expect(habit.type).toBe(title === "Avoidance habit" ? "avoidance" : "tracker");
-    expect(habit.targetHistory[0]).toEqual({ effectiveDate: expect.any(String), ...(title === "Avoidance habit" ? { max: 0 } : {}) });
+    expect(habit.type).toBe(title === "Avoidance habit (negative / quit)" ? "avoidance" : "tracker");
+    expect(habit.targetHistory[0]).toEqual({ effectiveDate: expect.any(String), ...(title === "Avoidance habit (negative / quit)" ? { max: 0 } : {}) });
     expect(preventDefault).toHaveBeenCalledOnce();
   });
 
