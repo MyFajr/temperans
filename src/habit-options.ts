@@ -1,5 +1,4 @@
-import { t, setLocale } from "./i18n";
-successfully downloaded text file (SHA: b42a91595e1cefa155c871f09c2f94e1f1d22f4f)export const UNIT_LABELS: Record<string, string> = {
+import { t } from "./i18n";export const UNIT_LABELS: Record<string, string> = {
   count: t("unit.count"),
   boolean: t("unit.boolean"),
   minutes: t("unit.minutes"),
