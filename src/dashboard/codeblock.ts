@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { abortable, checkAbort, isAbort } from "../async";
 import { App, MarkdownRenderChild, Notice } from "obsidian";
 import { daysInYear, monthOf, todayInZone, yearOf } from "../date";
